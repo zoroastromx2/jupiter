@@ -3,7 +3,8 @@
 A physically scaled WebGL observatory for Jupiter, Io, Europa, Ganymede and Callisto. The
 simulation couples real Jovian radii, System III rotation, Keplerian Galilean orbits, analytical
 transit/eclipse shadows, forward-scattering dust rings, custom GLSL cloud and aurora shaders, and a
-glassmorphism HUD.
+glassmorphism HUD. Historical mission playback adds Pioneer 10/11, Voyager 1/2, Galileo and Juno
+trajectories with onboard optical-instrument views.
 
 ## Run
 
@@ -29,6 +30,9 @@ npm run build  # production build
 - **CSS2D labels**, **orbit paths** and the **Halo/Gossamer ring volume** toggle independently.
 - **Ring backlight** moves the camera behind Jupiter's night side to a ~165° phase angle for
   forward-scattered dust and the nested gossamer silhouettes.
+- **Historical flight** selects a mission, jumps to its UTC epoch, and loads its 3D spacecraft and
+  spline. **Follow probe** tracks it; **Instrument view** uses the onboard WAC/NAC camera and the
+  matching Pioneer, Voyager, Galileo SSI or JunoCam optical emulation. **Lens** alternates WAC/NAC.
 - Drag to orbit, scroll to zoom, and press **Esc** to leave a surface view.
 
 Galilean transits are seasonal. Jump to **2030-04-01** (near Jupiter's equinox), select Jupiter,
@@ -51,6 +55,12 @@ and run at ×100 to watch moon shadows cross the cloud belts.
   boundaries. A back-side bounding cylinder runs a single-pass, 10-step jittered raymarch with a
   Henyey-Greenstein silicate phase function (`g = 0.86`), analytical Jupiter shadowing, day-side
   planetshine and tiny shepherd markers for Metis, Adrastea, Amalthea and Thebe.
+- Historical mission splines use Jupiter-equatorial-radius control points and Catmull-Rom
+  kinematics. Mission selection jumps the shared `daysSinceEpoch` clock, updates the Jovian moons
+  and transit shadows, and remaps each path so the scripted periapsis lands at its milestone time.
+  The onboard optics pass provides Pioneer Vidicon, Voyager reseau, Galileo SSI and JunoCam
+  push-frame looks. Saturn mission keys remain grouped in the catalogue for multi-planet scoping,
+  but are disabled in this Jovian build.
 - Scene scale: `1 world unit = 1,000 km`. Per-frame update paths use preallocated vectors and no
   array allocation.
 
@@ -67,3 +77,9 @@ and run at ×100 to watch moon shadows cross the cloud belts.
 - Callisto albedo: *Callisto map by Askaniy* by Askaniy Anpilogov and John van Vliet, CC BY-SA 3.0,
   [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Callisto_map_by_Askaniy.png).
 - Normal and cloud-detail maps are procedural derivatives of the corresponding albedo maps.
+- Pioneer 11 model: "Pioneer 11" by Danny.Gallegos, CC BY 4.0,
+  [Sketchfab](https://skfb.ly/otrXX).
+- Voyager 1 model: "Voyager 1" by Sidharth1, CC BY 4.0,
+  [Sketchfab](https://skfb.ly/o6uwE).
+- Voyager 2 model: "Crusader 5 probe No.2" by Epicfaceball, CC BY 4.0,
+  [Sketchfab](https://skfb.ly/pBHXJ).

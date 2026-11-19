@@ -409,6 +409,97 @@ button {
   margin-top: 13px;
 }
 
+.mission-panel {
+  padding-bottom: 13px;
+}
+
+.mission-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mission-select {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--gold) 50%) calc(100% - 14px) 50% / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--gold) 50%, transparent 50%) calc(100% - 9px) 50% / 5px 5px no-repeat,
+    rgba(255, 255, 255, 0.035);
+  padding: 8px 28px 8px 10px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color-scheme: dark;
+  outline: none;
+  cursor: pointer;
+}
+
+.mission-select:focus {
+  border-color: rgba(226, 180, 118, 0.55);
+}
+
+.mission-select option,
+.mission-select optgroup {
+  background: #0b0f18;
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.mission-select option:disabled {
+  color: #5f5a52;
+}
+
+.mission-description {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+.mission-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mission-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  text-align: left;
+}
+
+.mission-action.wide {
+  grid-column: 1 / -1;
+}
+
+.mission-action .action-state {
+  color: var(--dim);
+  font-size: 8px;
+}
+
+.mission-action[aria-pressed='true'] {
+  color: var(--gold-bright);
+  border-color: rgba(226, 180, 118, 0.45);
+  background: rgba(226, 180, 118, 0.1);
+}
+
+.mission-action[aria-pressed='true'] .action-state {
+  color: var(--gold-bright);
+}
+
 .action,
 .pause-btn,
 .speed-btn {
@@ -523,6 +614,116 @@ button {
 .hint-block strong {
   color: var(--gold);
   font-weight: 500;
+}
+
+.milestone-badge {
+  max-width: 185px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 2px solid var(--mission-color, var(--gold));
+  border-radius: 3px;
+  background: rgba(7, 10, 17, 0.72);
+  padding: 3px 6px;
+  color: rgba(245, 235, 218, 0.88);
+  font-family: var(--mono);
+  font-size: 7px;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  user-select: none;
+  backdrop-filter: blur(5px);
+}
+
+#instrument-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+#instrument-hud[hidden] {
+  display: none;
+}
+
+.instrument-frame {
+  position: absolute;
+  inset: 78px 24px 92px;
+  opacity: 0.72;
+}
+
+.instrument-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: rgba(244, 211, 155, 0.72);
+  border-style: solid;
+}
+
+.instrument-corner-tl {
+  top: 0;
+  left: 0;
+  border-width: 1px 0 0 1px;
+}
+.instrument-corner-tr {
+  top: 0;
+  right: 0;
+  border-width: 1px 1px 0 0;
+}
+.instrument-corner-bl {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 1px 1px;
+}
+.instrument-corner-br {
+  bottom: 0;
+  right: 0;
+  border-width: 0 1px 1px 0;
+}
+
+.instrument-readout {
+  position: absolute;
+  top: 130px;
+  left: 50%;
+  width: min(520px, 74vw);
+  transform: translateX(-50%);
+  border: 1px solid rgba(226, 180, 118, 0.32);
+  border-radius: 7px;
+  background: rgba(6, 10, 17, 0.62);
+  padding: 10px 13px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.instrument-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--gold-bright);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.instrument-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 6px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.03em;
+}
+
+.instrument-row span:first-child {
+  color: var(--dim);
+  font-size: 7px;
+  letter-spacing: 0.1em;
 }
 
 .time-panel {

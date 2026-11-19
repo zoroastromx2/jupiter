@@ -37,6 +37,16 @@ export class CameraController {
     this.surfaceTarget = null;
     this.surfaceOrigin = new THREE.Vector3();
     this.lastSurfaceTarget = new THREE.Vector3();
+
+    this.defaultFov = camera.fov;
+    this.isInstrumentLocked = false;
+    this.instrumentMount = null;
+    this.instrumentTarget = new THREE.Vector3();
+    this.hasInstrumentTarget = false;
+    this.instrumentFov = this.defaultFov;
+    this.activeLensMode = 'WAC';
+    this.opticsPass = null;
+    this.opticsMode = 0;
   }
 
   static radiusOf(targetObject) {
@@ -59,6 +69,7 @@ export class CameraController {
 
   focusOnObject(targetObject, distance, elevationBias = 0.28) {
     if (!targetObject) return;
+    this.exitInstrumentView();
     this.exitSurfaceView();
 
     if (this.tween) {
@@ -97,6 +108,32 @@ export class CameraController {
     });
   }
 
+  setInstantFocus(targetObject, direction, distance) {
+    if (!targetObject || !direction) return;
+
+    this.exitInstrumentView();
+    this.exitSurfaceView();
+    if (this.tween) {
+      this.tween.kill();
+      this.tween = null;
+    }
+
+    this.currentTarget = targetObject;
+    this.focusDistance = Math.max(0.05, distance);
+    this.controls.enabled = true;
+
+    targetObject.getWorldPosition(this.targetPosition);
+    this.offsetDirection.copy(direction).normalize();
+    this.camera.position
+      .copy(this.targetPosition)
+      .addScaledVector(this.offsetDirection, this.focusDistance);
+    this.controls.target.copy(this.targetPosition);
+    this.camera.up.copy(this.defaultUp);
+    this.camera.lookAt(this.controls.target);
+    this.controls.update();
+    this.lastTargetPosition.copy(this.targetPosition);
+  }
+
   applyFocusTransition() {
     if (!this.currentTarget) return;
 
@@ -122,6 +159,7 @@ export class CameraController {
     const mount = simulator?.surfaceCameraMount;
     const target = simulator?.surfaceCameraTarget;
     if (!mount || !target) return;
+    this.exitInstrumentView();
 
     if (this.tween) {
       this.tween.kill();
@@ -196,7 +234,84 @@ export class CameraController {
     this.controls.enabled = true;
   }
 
+  setOpticsPass(pass) {
+    this.opticsPass = pass;
+    if (pass?.uniforms?.uOpticsMode) {
+      pass.uniforms.uOpticsMode.value = this.isInstrumentLocked
+        ? this.opticsMode
+        : 0;
+    }
+  }
+
+  setOpticsMode(mode) {
+    this.opticsMode = mode;
+    if (this.opticsPass?.uniforms?.uOpticsMode) {
+      this.opticsPass.uniforms.uOpticsMode.value = this.isInstrumentLocked
+        ? mode
+        : 0;
+    }
+  }
+
+  setInstrumentTarget(target) {
+    if (!target) return;
+    this.instrumentTarget.copy(target);
+    this.hasInstrumentTarget = true;
+  }
+
+  setInstrumentFov(fov) {
+    this.instrumentFov = fov;
+    this.activeLensMode = fov <= 16 ? 'NAC' : 'WAC';
+    this.camera.fov = fov;
+    this.camera.updateProjectionMatrix();
+  }
+
+  engageInstrumentView(mount, fov = 32) {
+    if (!mount) return;
+    this.exitSurfaceView();
+    if (this.tween) {
+      this.tween.kill();
+      this.tween = null;
+    }
+
+    this.isInstrumentLocked = true;
+    this.instrumentMount = mount;
+    this.currentTarget = null;
+    this.controls.enabled = false;
+    this.setInstrumentFov(fov);
+    this.setOpticsMode(this.opticsMode);
+  }
+
+  toggleInstrumentLens() {
+    if (!this.isInstrumentLocked) return this.activeLensMode;
+    const nextMode = this.activeLensMode === 'WAC' ? 'NAC' : 'WAC';
+    this.setInstrumentFov(nextMode === 'WAC' ? 32 : 10);
+    return nextMode;
+  }
+
+  exitInstrumentView() {
+    if (!this.isInstrumentLocked) return;
+    this.isInstrumentLocked = false;
+    this.instrumentMount = null;
+    this.hasInstrumentTarget = false;
+    this.controls.enabled = true;
+    this.camera.fov = this.defaultFov;
+    this.camera.updateProjectionMatrix();
+    this.camera.up.copy(this.defaultUp);
+    if (this.opticsPass?.uniforms?.uOpticsMode) {
+      this.opticsPass.uniforms.uOpticsMode.value = 0;
+    }
+  }
+
   update() {
+    if (this.isInstrumentLocked && this.instrumentMount) {
+      this.instrumentMount.getWorldPosition(this.camera.position);
+      if (this.hasInstrumentTarget) {
+        this.controls.target.copy(this.instrumentTarget);
+      }
+      this.camera.lookAt(this.controls.target);
+      return;
+    }
+
     if (this.isSurfaceLocked && this.surfaceMount && this.surfaceTarget) {
       this.surfaceMount.getWorldPosition(this.camera.position);
       this.surfaceTarget.getWorldPosition(this.surfaceLookPosition);

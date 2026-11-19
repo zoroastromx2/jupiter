@@ -77,6 +77,15 @@ export class JovianRingsSimulator {
     this.mesh.renderOrder = 2;
     this.group.add(this.mesh);
 
+    this.focusTarget = new THREE.Object3D();
+    this.focusTarget.name = 'JovianRingFocusTarget';
+    this.focusTarget.position.set(
+      JOVIAN_RINGS.MAIN_OUTER * this.radiusEq,
+      0,
+      0
+    );
+    this.group.add(this.focusTarget);
+
     this.shepherdRadii = [1.792, 1.806, JOVIAN_RINGS.AMALTHEA_OUTER, JOVIAN_RINGS.THEBE_OUTER];
     this.shepherdPeriods = [0.29478, 0.29826, 0.49818, 0.67454];
     this.shepherdPhases = [0.2, 1.7, 3.1, 5.4];

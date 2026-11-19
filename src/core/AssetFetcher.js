@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const COLOR_ASSETS = new Set([
   'jupiterColor',
@@ -65,6 +66,7 @@ const ASSET_SPECS = [
 export class AssetFetcher {
   constructor(options = {}) {
     this.textureLoader = options.textureLoader || new THREE.TextureLoader();
+    this.gltfLoader = options.gltfLoader || new GLTFLoader();
     this.maxAnisotropy = Math.max(1, options.maxAnisotropy ?? 1);
     this.onProgress = options.onProgress ?? null;
     this.baseUrl =
@@ -83,7 +85,12 @@ export class AssetFetcher {
       ganymedeColor: null,
       ganymedeNormal: null,
       callistoColor: null,
-      callistoNormal: null
+      callistoNormal: null,
+      models: {
+        pioneer11: null,
+        voyager1: null,
+        voyager2: null
+      }
     };
   }
 
@@ -162,6 +169,30 @@ export class AssetFetcher {
 
     this.onProgress?.(1);
     return this.assets;
+  }
+
+  loadGLB(relativePath) {
+    return new Promise((resolve) => {
+      this.gltfLoader.load(
+        this.assetUrl(relativePath),
+        (gltf) => resolve(gltf.scene ?? gltf.scenes?.[0] ?? null),
+        undefined,
+        () => resolve(null)
+      );
+    });
+  }
+
+  async loadProbeModels() {
+    const [pioneer11, voyager1, voyager2] = await Promise.all([
+      this.loadGLB('models/pioneer_11.glb'),
+      this.loadGLB('models/voyager_1.glb'),
+      this.loadGLB('models/voyager_2.glb')
+    ]);
+
+    this.assets.models.pioneer11 = pioneer11;
+    this.assets.models.voyager1 = voyager1;
+    this.assets.models.voyager2 = voyager2;
+    return this.assets.models;
   }
 }
 
