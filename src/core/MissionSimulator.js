@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { MISSIONS } from '../data/HistoricalMissions.js';
+import { J2000_EPOCH_MS, MS_PER_DAY } from '../math/AstroScale.js';
 
-const J2000_EPOCH_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
-const MS_PER_DAY = 86400000;
 const MS_PER_HOUR = 3600000;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const PATH_SEGMENTS = 360;
