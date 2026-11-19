@@ -86,7 +86,21 @@ const TRANSLATIONS = {
     rateReadoutCustom: '{rate}× · custom rate',
     millionKm: 'M km',
     planetJupiterMissions: 'Jupiter Missions',
-    planetSaturnMissions: 'Saturn Missions'
+    planetSaturnMissions: 'Saturn Missions',
+    touchHintOrbitKey: '1 FINGER',
+    touchHintOrbitAction: 'orbit',
+    touchHintPinchKey: '2 FINGERS',
+    touchHintPinchAction: 'zoom / pan',
+    touchHintTapKey: '2× TAP',
+    touchHintTapAction: 'focus',
+    mobileControlsOpen: 'Controls',
+    mobileControlsClose: 'Close',
+    mobileSheetHandleAria: 'Drag or tap to collapse controls',
+    mobileDockAria: 'Quick mobile navigation',
+    mobileBodiesAria: 'Select celestial body',
+    exitInstrument: 'Exit instrument',
+    surfaceTouchHint: 'Drag 1 finger to look · 2× tap to exit',
+    instrumentTouchHint: 'Pinch to zoom · 2× tap WAC / NAC'
   },
   es: {
     docTitle: 'Observatorio Joviano · Júpiter y Lunas Galileanas',
@@ -171,7 +185,21 @@ const TRANSLATIONS = {
     rateReadoutCustom: '{rate}× · velocidad manual',
     millionKm: 'M km',
     planetJupiterMissions: 'Misiones a Júpiter',
-    planetSaturnMissions: 'Misiones a Saturno'
+    planetSaturnMissions: 'Misiones a Saturno',
+    touchHintOrbitKey: '1 DEDO',
+    touchHintOrbitAction: 'orbitar',
+    touchHintPinchKey: '2 DEDOS',
+    touchHintPinchAction: 'zoom / mover',
+    touchHintTapKey: '2× TOQUE',
+    touchHintTapAction: 'enfocar',
+    mobileControlsOpen: 'Controles',
+    mobileControlsClose: 'Cerrar',
+    mobileSheetHandleAria: 'Desliza o toca para cerrar controles',
+    mobileDockAria: 'Navegación rápida móvil',
+    mobileBodiesAria: 'Seleccionar cuerpo celeste',
+    exitInstrument: 'Salir instrumento',
+    surfaceTouchHint: 'Arrastra 1 dedo para mirar · 2× toque para salir',
+    instrumentTouchHint: 'Pellizca para zoom · 2× toque WAC / NAC'
   }
 };
 

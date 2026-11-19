@@ -37,6 +37,13 @@ export class CameraController {
     this.surfaceTarget = null;
     this.surfaceOrigin = new THREE.Vector3();
     this.lastSurfaceTarget = new THREE.Vector3();
+    this.surfaceLookYaw = 0;
+    this.surfaceLookPitch = 0;
+    this.surfaceForward = new THREE.Vector3();
+    this.surfaceRight = new THREE.Vector3();
+    this.surfaceAdjustedLook = new THREE.Vector3();
+    this.surfaceLookQuat = new THREE.Quaternion();
+    this.surfacePitchQuat = new THREE.Quaternion();
 
     this.defaultFov = camera.fov;
     this.isInstrumentLocked = false;
@@ -171,6 +178,8 @@ export class CameraController {
     this.isSurfaceLocked = false;
     this.surfaceMount = mount;
     this.surfaceTarget = target;
+    this.surfaceLookYaw = 0;
+    this.surfaceLookPitch = 0;
     this.controls.enabled = false;
 
     this.startPosition.copy(this.camera.position);
@@ -225,11 +234,34 @@ export class CameraController {
     });
   }
 
+  cancelTransition() {
+    if (!this.tween) return false;
+    this.tween.kill();
+    this.tween = null;
+    if (this.currentTarget && !this.isSurfaceLocked && !this.isInstrumentLocked) {
+      this.currentTarget.getWorldPosition(this.lastTargetPosition);
+    }
+    return true;
+  }
+
+  setSurfaceLook(yaw, pitch) {
+    if (!this.isSurfaceLocked) return;
+    if (Number.isFinite(yaw)) this.surfaceLookYaw = yaw;
+    if (Number.isFinite(pitch)) this.surfaceLookPitch = pitch;
+  }
+
+  resetSurfaceLook() {
+    this.surfaceLookYaw = 0;
+    this.surfaceLookPitch = 0;
+  }
+
   exitSurfaceView() {
     this.isSurfaceLocked = false;
     this.surfaceMount = null;
     this.surfaceTarget = null;
     this.surfaceCenterObject = null;
+    this.surfaceLookYaw = 0;
+    this.surfaceLookPitch = 0;
     this.camera.up.copy(this.defaultUp);
     this.controls.enabled = true;
   }
@@ -320,7 +352,38 @@ export class CameraController {
         .subVectors(this.camera.position, this.surfaceCenter)
         .normalize();
       this.camera.up.copy(this.surfaceUp);
-      this.controls.target.copy(this.surfaceLookPosition);
+
+      if (this.surfaceLookYaw !== 0 || this.surfaceLookPitch !== 0) {
+        const lookDist = Math.max(
+          0.1,
+          this.surfaceForward
+            .subVectors(this.surfaceLookPosition, this.camera.position)
+            .length()
+        );
+        this.surfaceForward.multiplyScalar(1 / lookDist);
+        this.surfaceLookQuat.setFromAxisAngle(
+          this.surfaceUp,
+          -this.surfaceLookYaw
+        );
+        this.surfaceForward.applyQuaternion(this.surfaceLookQuat).normalize();
+        this.surfaceRight
+          .crossVectors(this.surfaceForward, this.surfaceUp)
+          .normalize();
+        if (this.surfaceRight.lengthSq() > 1e-8) {
+          this.surfacePitchQuat.setFromAxisAngle(
+            this.surfaceRight,
+            -this.surfaceLookPitch
+          );
+          this.surfaceForward.applyQuaternion(this.surfacePitchQuat).normalize();
+        }
+        this.surfaceAdjustedLook
+          .copy(this.camera.position)
+          .addScaledVector(this.surfaceForward, lookDist);
+        this.controls.target.copy(this.surfaceAdjustedLook);
+      } else {
+        this.controls.target.copy(this.surfaceLookPosition);
+      }
+
       this.camera.lookAt(this.controls.target);
       return;
     }

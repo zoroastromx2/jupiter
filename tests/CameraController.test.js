@@ -126,4 +126,40 @@ describe('CameraController', () => {
     expect(controls.enabled).toBe(true);
     expect(camera.up.toArray()).toEqual([0, 1, 0]);
   });
+
+  it('cancels an in-flight focus transition immediately on user touch', () => {
+    const { controller } = createHarness();
+    const target = new THREE.Object3D();
+    target.position.set(12, 0, -4);
+
+    controller.focusOnObject(target, 25, 0.2);
+    expect(controller.tween).not.toBeNull();
+
+    const cancelled = controller.cancelTransition();
+    expect(cancelled).toBe(true);
+    expect(controller.tween).toBeNull();
+    expect(controller.cancelTransition()).toBe(false);
+  });
+
+  it('supports looking around in surface view and resets cleanly', () => {
+    const { controls, controller } = createHarness();
+    const { body, mount, aim } = createSurfaceBody();
+
+    controller.landOnSurface({
+      mesh: body,
+      surfaceCameraMount: mount,
+      surfaceCameraTarget: aim
+    });
+    completeTransition(controller);
+
+    const baselineTarget = controls.target.clone();
+    controller.setSurfaceLook(0.45, -0.15);
+    controller.update();
+
+    expect(controls.target.distanceTo(baselineTarget)).toBeGreaterThan(0.5);
+
+    controller.resetSurfaceLook();
+    controller.update();
+    expect(controls.target.distanceTo(baselineTarget)).toBeLessThan(1e-5);
+  });
 });

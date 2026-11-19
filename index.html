@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
       content="A physically scaled 3D observatory of Jupiter and the Galilean moons, with live Keplerian orbits, analytical transit shadows and custom GLSL atmospheres."
@@ -85,7 +85,16 @@
         </div>
       </header>
 
-      <main class="hud-grid">
+      <main id="hud-grid" class="hud-grid">
+        <button
+          id="mobile-sheet-handle"
+          class="mobile-sheet-handle"
+          type="button"
+          aria-label="Drag or tap to collapse controls"
+        >
+          <span class="sheet-grip" aria-hidden="true"></span>
+        </button>
+
         <div class="left-stack">
           <section class="panel glass target-panel" aria-labelledby="targets-title">
             <div class="panel-head">
@@ -208,10 +217,15 @@
               <span data-i18n="ringBacklight">Ring backlight</span>
               <span class="toggle-state">165°</span>
             </button>
-            <div class="hint-block">
+            <div class="hint-block hint-desktop">
               <span data-i18n="hintDragKey">DRAG</span> <em class="hint-text" data-i18n="hintDragAction">orbit camera</em> ·
               <span data-i18n="hintScrollKey">SCROLL</span> <em class="hint-text" data-i18n="hintScrollAction">zoom</em> ·
               <span data-i18n="hintEscKey">ESC</span> <em class="hint-text" data-i18n="hintEscAction">leave surface</em>
+            </div>
+            <div class="hint-block hint-touch">
+              <span data-i18n="touchHintOrbitKey">1 FINGER</span> <em class="hint-text" data-i18n="touchHintOrbitAction">orbit</em> ·
+              <span data-i18n="touchHintPinchKey">2 FINGERS</span> <em class="hint-text" data-i18n="touchHintPinchAction">zoom / pan</em> ·
+              <span data-i18n="touchHintTapKey">2× TAP</span> <em class="hint-text" data-i18n="touchHintTapAction">focus</em>
             </div>
           </section>
         </div>
@@ -402,6 +416,71 @@
           </div>
         </div>
       </div>
+
+      <div id="locked-view-bar" class="locked-view-bar glass" hidden>
+        <span id="locked-view-hint" class="locked-view-hint"></span>
+        <button id="btn-exit-locked-view" class="action primary compact" type="button">
+          <span id="btn-exit-locked-label">Exit surface</span>
+        </button>
+      </div>
+
+      <div id="mobile-gesture-cue" class="mobile-gesture-cue glass" aria-live="polite">
+        <span data-i18n="touchHintOrbitKey">1 FINGER</span>
+        <em class="hint-text" data-i18n="touchHintOrbitAction">orbit</em>
+        <span class="cue-dot" aria-hidden="true">·</span>
+        <span data-i18n="touchHintPinchKey">2 FINGERS</span>
+        <em class="hint-text" data-i18n="touchHintPinchAction">zoom / pan</em>
+        <span class="cue-dot" aria-hidden="true">·</span>
+        <span data-i18n="touchHintTapKey">2× TAP</span>
+        <em class="hint-text" data-i18n="touchHintTapAction">focus</em>
+      </div>
+
+      <nav id="mobile-dock" class="mobile-dock glass" aria-label="Quick mobile navigation">
+        <div
+          id="mobile-body-strip"
+          class="mobile-body-strip"
+          role="group"
+          aria-label="Select celestial body"
+        >
+          <button class="mobile-chip is-active" type="button" data-mobile-body="jupiter">
+            Jupiter
+          </button>
+          <button class="mobile-chip" type="button" data-mobile-body="io">
+            Io
+          </button>
+          <button class="mobile-chip" type="button" data-mobile-body="europa">
+            Europa
+          </button>
+          <button class="mobile-chip" type="button" data-mobile-body="ganymede">
+            Ganymede
+          </button>
+          <button class="mobile-chip" type="button" data-mobile-body="callisto">
+            Callisto
+          </button>
+        </div>
+        <div class="mobile-dock-actions">
+          <button
+            id="btn-mobile-pause"
+            class="mobile-icon-btn"
+            type="button"
+            aria-pressed="false"
+            aria-label="Pause"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 2.5h2.5v11H4zM9.5 2.5H12v11H9.5z" />
+            </svg>
+          </button>
+          <button
+            id="btn-mobile-drawer"
+            class="mobile-drawer-btn"
+            type="button"
+            aria-expanded="false"
+            aria-controls="hud-grid"
+          >
+            <span id="btn-mobile-drawer-label" data-i18n="mobileControlsOpen">Controls</span>
+          </button>
+        </div>
+      </nav>
 
       <button id="btn-toggle-hud" class="hud-toggle" type="button" aria-label="Hide interface">
         <svg viewBox="0 0 20 20" aria-hidden="true">

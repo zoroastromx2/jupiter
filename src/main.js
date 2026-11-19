@@ -40,6 +40,11 @@ import {
   normalizeLanguage,
   t
 } from './i18n/I18n.js';
+import {
+  getTouchControlProfile,
+  resolveSwipeSheetAction
+} from './input/TouchGestureMath.js';
+import { TouchNavigationController } from './input/TouchNavigationController.js';
 import './style.css';
 
 const BODY_ORDER = ['jupiter', 'io', 'europa', 'ganymede', 'callisto'];
@@ -113,8 +118,12 @@ let instrumentLensReadoutEl;
 let instrumentDistanceEl;
 let instrumentVelocityEl;
 let missionTimelineUI = null;
+let touchNavigation = null;
+let mobileDrawerOpen = false;
 
 const targetButtons = {};
+const mobileBodyChips = {};
+const doubleTapTargetPos = new THREE.Vector3();
 const timer = new THREE.Timer();
 timer.connect(document);
 
@@ -177,11 +186,16 @@ function refreshTargetListUI() {
     const id = BODY_ORDER[i];
     const button = targetButtons[id];
     const meta = getBodyMeta(id, currentLang);
-    if (!button || !meta) continue;
-    const nameEl = button.querySelector('.target-name');
-    const metaEl = button.querySelector('.target-meta');
-    if (nameEl) nameEl.textContent = meta.name;
-    if (metaEl) metaEl.textContent = meta.shortMeta;
+    if (button && meta) {
+      const nameEl = button.querySelector('.target-name');
+      const metaEl = button.querySelector('.target-meta');
+      if (nameEl) nameEl.textContent = meta.name;
+      if (metaEl) metaEl.textContent = meta.shortMeta;
+    }
+    const mobileChip = mobileBodyChips[id];
+    if (mobileChip && meta) {
+      mobileChip.textContent = meta.name;
+    }
   }
 }
 
@@ -192,7 +206,13 @@ function refreshSelectionUI() {
 
   for (let i = 0; i < BODY_ORDER.length; i += 1) {
     const id = BODY_ORDER[i];
-    targetButtons[id]?.classList.toggle('is-active', id === selectedBodyId);
+    const active = id === selectedBodyId;
+    targetButtons[id]?.classList.toggle('is-active', active);
+    const chip = mobileBodyChips[id];
+    if (chip) {
+      chip.classList.toggle('is-active', active);
+      chip.setAttribute('aria-pressed', String(active));
+    }
   }
 
   document.getElementById('telemetry-target').textContent = meta.name;
@@ -228,13 +248,22 @@ function updateViewState() {
   const meta = getBodyMeta(selectedBodyId, currentLang);
   const bodyName = (meta?.name ?? selectedBodyId).toUpperCase();
   const surfaceLabel = document.getElementById('btn-surface-label');
+  const lockedBar = document.getElementById('locked-view-bar');
+  const lockedHint = document.getElementById('locked-view-hint');
+  const lockedBtnLabel = document.getElementById('btn-exit-locked-label');
 
   if (cameraController?.isInstrumentLocked && missionSim?.activeMission) {
     viewState.textContent =
       `${t(currentLang, 'viewInstrument')} · ${missionSim.activeMission.name.toUpperCase()}`;
+    if (lockedBar) lockedBar.hidden = false;
+    if (lockedHint) lockedHint.textContent = t(currentLang, 'instrumentTouchHint');
+    if (lockedBtnLabel) lockedBtnLabel.textContent = t(currentLang, 'exitInstrument');
   } else if (cameraController?.isSurfaceLocked) {
     viewState.textContent = `${t(currentLang, 'viewSurface')} · ${bodyName}`;
     if (surfaceLabel) surfaceLabel.textContent = t(currentLang, 'exitSurface');
+    if (lockedBar) lockedBar.hidden = false;
+    if (lockedHint) lockedHint.textContent = t(currentLang, 'surfaceTouchHint');
+    if (lockedBtnLabel) lockedBtnLabel.textContent = t(currentLang, 'exitSurface');
   } else {
     viewState.textContent = `${t(currentLang, 'viewOrbital')} · ${bodyName}`;
     if (surfaceLabel) {
@@ -243,6 +272,7 @@ function updateViewState() {
           ? t(currentLang, 'surfaceView')
           : t(currentLang, 'cloudTopView');
     }
+    if (lockedBar) lockedBar.hidden = true;
   }
 }
 
@@ -718,16 +748,25 @@ function togglePause() {
 
 function refreshTimeControls() {
   const pauseButton = document.getElementById('btn-pause');
+  const mobilePauseBtn = document.getElementById('btn-mobile-pause');
   const status = document.getElementById('hud-status');
   const rate = document.getElementById('speed-readout');
   const clockRate = document.getElementById('clock-rate');
   const speedButtons = document.querySelectorAll('.speed-btn');
 
-  pauseButton.classList.toggle('is-active', state.paused);
-  pauseButton.setAttribute('aria-pressed', String(state.paused));
-  pauseButton.querySelector('span').textContent = state.paused
+  const pauseLabel = state.paused
     ? t(currentLang, 'resume')
     : t(currentLang, 'pause');
+
+  pauseButton.classList.toggle('is-active', state.paused);
+  pauseButton.setAttribute('aria-pressed', String(state.paused));
+  pauseButton.querySelector('span').textContent = pauseLabel;
+
+  if (mobilePauseBtn) {
+    mobilePauseBtn.classList.toggle('is-active', state.paused);
+    mobilePauseBtn.setAttribute('aria-pressed', String(state.paused));
+    mobilePauseBtn.setAttribute('aria-label', pauseLabel);
+  }
 
   status.textContent = state.paused
     ? t(currentLang, 'statusPaused')
@@ -745,6 +784,93 @@ function refreshTimeControls() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
+}
+
+function setMobileDrawerOpen(open) {
+  mobileDrawerOpen = Boolean(open);
+  document.body.classList.toggle('mobile-drawer-open', mobileDrawerOpen);
+
+  const drawerBtn = document.getElementById('btn-mobile-drawer');
+  const drawerLabel = document.getElementById('btn-mobile-drawer-label');
+  if (drawerBtn) {
+    drawerBtn.setAttribute('aria-expanded', String(mobileDrawerOpen));
+  }
+  if (drawerLabel) {
+    drawerLabel.textContent = t(
+      currentLang,
+      mobileDrawerOpen ? 'mobileControlsClose' : 'mobileControlsOpen'
+    );
+  }
+}
+
+function applyResponsiveControlProfile() {
+  if (!controls) return;
+  const isCoarse =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches;
+  const profile = getTouchControlProfile(isCoarse, window.innerWidth);
+  controls.rotateSpeed = profile.rotateSpeed;
+  controls.zoomSpeed = profile.zoomSpeed;
+  controls.panSpeed = profile.panSpeed;
+  controls.dampingFactor = profile.dampingFactor;
+}
+
+function handleDoubleTapOrbital() {
+  const simulator = bodySimulatorFor(selectedBodyId);
+  if (!simulator?.focusTarget || !cameraController) return;
+
+  simulator.focusTarget.getWorldPosition(doubleTapTargetPos);
+  const currentDist = camera.position.distanceTo(doubleTapTargetPos);
+  const radius = sceneRadiusFor(selectedBodyId, simulator);
+  const closeDist = radius * (selectedBodyId === 'jupiter' ? 4.0 : 6.2);
+  const overviewDist = radius * (selectedBodyId === 'jupiter' ? 8.8 : 13.0);
+
+  const targetDist = currentDist <= closeDist * 1.35 ? overviewDist : closeDist;
+  cameraController.focusOnObject(simulator.focusTarget, targetDist, 0.22);
+  updateViewState();
+}
+
+function handleDoubleTapSurface() {
+  if (!cameraController?.isSurfaceLocked) return;
+  const lookOffset = Math.hypot(
+    cameraController.surfaceLookYaw ?? 0,
+    cameraController.surfaceLookPitch ?? 0
+  );
+  if (lookOffset > 0.08) {
+    cameraController.resetSurfaceLook();
+    return;
+  }
+  focusSelectedBody(false);
+}
+
+function bindSwipeSheetGesture(element, isOpenGetter) {
+  if (!element) return;
+  let startY = 0;
+  let startTime = 0;
+  let pointerId = null;
+
+  element.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'touch') return;
+    pointerId = event.pointerId;
+    startY = event.clientY;
+    startTime = event.timeStamp || performance.now();
+  });
+
+  element.addEventListener('pointerup', (event) => {
+    if (event.pointerId !== pointerId) return;
+    pointerId = null;
+    const dy = event.clientY - startY;
+    const dt = Math.max(1, (event.timeStamp || performance.now()) - startTime);
+    const velocityY = dy / dt;
+    const action = resolveSwipeSheetAction(dy, velocityY, isOpenGetter());
+    if (action === 'open') setMobileDrawerOpen(true);
+    else if (action === 'close') setMobileDrawerOpen(false);
+  });
+
+  element.addEventListener('pointercancel', () => {
+    pointerId = null;
+  });
 }
 
 function jumpToDate(value) {
@@ -819,10 +945,33 @@ function applyStaticTranslations() {
     );
   }
 
+  const sheetHandle = document.getElementById('mobile-sheet-handle');
+  if (sheetHandle) {
+    sheetHandle.setAttribute('aria-label', t(currentLang, 'mobileSheetHandleAria'));
+  }
+
+  const mobileDock = document.getElementById('mobile-dock');
+  if (mobileDock) {
+    mobileDock.setAttribute('aria-label', t(currentLang, 'mobileDockAria'));
+  }
+
+  const mobileBodyStrip = document.getElementById('mobile-body-strip');
+  if (mobileBodyStrip) {
+    mobileBodyStrip.setAttribute('aria-label', t(currentLang, 'mobileBodiesAria'));
+  }
+
   const translatedNodes = document.querySelectorAll('[data-i18n]');
   for (let i = 0; i < translatedNodes.length; i += 1) {
     const el = translatedNodes[i];
     el.textContent = t(currentLang, el.dataset.i18n);
+  }
+
+  const drawerLabel = document.getElementById('btn-mobile-drawer-label');
+  if (drawerLabel) {
+    drawerLabel.textContent = t(
+      currentLang,
+      mobileDrawerOpen ? 'mobileControlsClose' : 'mobileControlsOpen'
+    );
   }
 
   const langButtons = document.querySelectorAll('.lang-btn[data-lang]');
@@ -947,6 +1096,10 @@ function onResize() {
   labelRenderer.setSize(width, height);
   starfieldSim?.setPixelRatio(pixelRatio);
   opticsPass?.uniforms.uResolution.value.set(width, height);
+  applyResponsiveControlProfile();
+  if (width > 900 && mobileDrawerOpen) {
+    setMobileDrawerOpen(false);
+  }
 }
 
 function setLoaderProgress(fraction) {
@@ -991,14 +1144,31 @@ async function bootstrapApp() {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.06;
+  controls.enablePan = true;
+  controls.screenSpacePanning = true;
   controls.minDistance = 0.2;
   controls.maxDistance = 12000;
-  controls.rotateSpeed = 0.55;
-  controls.zoomSpeed = 0.8;
+  controls.touches = {
+    ONE: THREE.TOUCH.ROTATE,
+    TWO: THREE.TOUCH.DOLLY_PAN
+  };
+  applyResponsiveControlProfile();
   controls.update();
 
   cameraController = new CameraController(camera, controls);
+
+  touchNavigation = new TouchNavigationController(canvas, cameraController, {
+    onFirstTouch: () => {
+      document.getElementById('mobile-gesture-cue')?.classList.add('is-dismissed');
+    },
+    onDoubleTapOrbital: handleDoubleTapOrbital,
+    onDoubleTapSurface: handleDoubleTapSurface,
+    onDoubleTapInstrument: toggleInstrumentLens,
+    onInstrumentZoom: () => {
+      refreshMissionUi();
+      refreshInstrumentReadout();
+    }
+  });
 
   composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -1089,7 +1259,18 @@ async function bootstrapApp() {
     const button = document.querySelector(`[data-body="${id}"]`);
     if (button) {
       targetButtons[id] = button;
-      button.addEventListener('click', () => selectBody(id, true));
+      button.addEventListener('click', () => {
+        selectBody(id, true);
+        if (window.innerWidth <= 900) setMobileDrawerOpen(false);
+      });
+    }
+    const mobileChip = document.querySelector(`[data-mobile-body="${id}"]`);
+    if (mobileChip) {
+      mobileBodyChips[id] = mobileChip;
+      mobileChip.addEventListener('click', () => {
+        selectBody(id, true);
+        document.getElementById('mobile-gesture-cue')?.classList.add('is-dismissed');
+      });
     }
   }
 
@@ -1097,6 +1278,7 @@ async function bootstrapApp() {
 
   document.getElementById('btn-focus').addEventListener('click', () => {
     focusSelectedBody(false);
+    if (window.innerWidth <= 900) setMobileDrawerOpen(false);
   });
 
   document.getElementById('btn-surface').addEventListener('click', () => {
@@ -1105,7 +1287,32 @@ async function bootstrapApp() {
     } else {
       focusSelectedBody(true);
     }
+    if (window.innerWidth <= 900) setMobileDrawerOpen(false);
   });
+
+  document.getElementById('btn-exit-locked-view')?.addEventListener('click', () => {
+    if (cameraController.isInstrumentLocked) {
+      leaveInstrumentView(true);
+    } else if (cameraController.isSurfaceLocked) {
+      focusSelectedBody(false);
+    }
+  });
+
+  document.getElementById('btn-mobile-pause')?.addEventListener('click', togglePause);
+  document.getElementById('btn-mobile-drawer')?.addEventListener('click', () => {
+    setMobileDrawerOpen(!mobileDrawerOpen);
+  });
+  document.getElementById('mobile-sheet-handle')?.addEventListener('click', () => {
+    setMobileDrawerOpen(false);
+  });
+  bindSwipeSheetGesture(
+    document.getElementById('mobile-sheet-handle'),
+    () => mobileDrawerOpen
+  );
+  bindSwipeSheetGesture(
+    document.getElementById('mobile-dock'),
+    () => mobileDrawerOpen
+  );
 
   const labelsButton = document.getElementById('btn-toggle-labels');
   labelsButton.addEventListener('click', () => {
@@ -1129,7 +1336,10 @@ async function bootstrapApp() {
 
   document
     .getElementById('btn-rings-backlight')
-    .addEventListener('click', viewRingsBacklight);
+    .addEventListener('click', () => {
+      viewRingsBacklight();
+      if (window.innerWidth <= 900) setMobileDrawerOpen(false);
+    });
 
   const pauseButton = document.getElementById('btn-pause');
   pauseButton.addEventListener('click', togglePause);

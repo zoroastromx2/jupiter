@@ -54,6 +54,7 @@ export class MissionTimelineUI {
     this.tooltipFovEl = rootElement?.querySelector('#tooltip-fov') ?? null;
     this.tooltipTitleEl = rootElement?.querySelector('#tooltip-title') ?? null;
     this.hoveredMarkerIndex = -1;
+    this.touchTooltipTimer = null;
 
     this.bindEvents();
   }
@@ -191,6 +192,10 @@ export class MissionTimelineUI {
 
   hideTooltip(index = null) {
     if (index !== null && this.hoveredMarkerIndex !== index) return;
+    if (this.touchTooltipTimer !== null) {
+      window.clearTimeout(this.touchTooltipTimer);
+      this.touchTooltipTimer = null;
+    }
     this.hoveredMarkerIndex = -1;
     if (this.tooltipEl) this.tooltipEl.hidden = true;
   }
@@ -236,10 +241,12 @@ export class MissionTimelineUI {
         pip.setAttribute('aria-hidden', 'true');
         markerBtn.appendChild(pip);
 
-        markerBtn.addEventListener('pointerenter', () => {
+        markerBtn.addEventListener('pointerenter', (event) => {
+          if (event.pointerType === 'touch') return;
           this.showTooltip(milestone, i);
         });
-        markerBtn.addEventListener('pointerleave', () => {
+        markerBtn.addEventListener('pointerleave', (event) => {
+          if (event.pointerType === 'touch') return;
           this.hideTooltip(i);
         });
         markerBtn.addEventListener('focus', () => {
@@ -250,6 +257,13 @@ export class MissionTimelineUI {
         });
         markerBtn.addEventListener('click', () => {
           this.onSelectMilestone?.(milestone, i);
+          this.showTooltip(milestone, i);
+          if (this.touchTooltipTimer !== null) {
+            window.clearTimeout(this.touchTooltipTimer);
+          }
+          this.touchTooltipTimer = window.setTimeout(() => {
+            this.hideTooltip(i);
+          }, 2600);
         });
 
         this.markersEl.appendChild(markerBtn);
