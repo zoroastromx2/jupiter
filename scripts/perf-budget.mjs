@@ -10,6 +10,7 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import {
   createReadStream,
   existsSync,
@@ -131,32 +132,44 @@ function resolveChrome() {
   );
 }
 
-function waitForDevTools(child) {
-  return new Promise((resolveEndpoint, reject) => {
-    let buffer = '';
-    const timer = setTimeout(() => {
-      reject(new Error('Chrome did not expose a DevTools endpoint within 15 s.'));
-    }, 15_000);
-
-    child.stderr.setEncoding('utf8');
-    child.stderr.on('data', (chunk) => {
-      buffer += chunk;
-      const match = buffer.match(/DevTools listening on (ws:\/\/\S+)/);
-      if (match) {
-        clearTimeout(timer);
-        resolveEndpoint(match[1]);
-      }
-    });
-
-    child.once('error', (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.once('exit', (code) => {
-      clearTimeout(timer);
-      reject(new Error(`Chrome exited before DevTools was ready (code ${code}).`));
-    });
+async function getFreePort() {
+  const probe = createNetServer();
+  await new Promise((resolveListen, rejectListen) => {
+    probe.once('error', rejectListen);
+    probe.listen(0, '127.0.0.1', resolveListen);
   });
+  const port = probe.address().port;
+  await new Promise((resolveClose) => probe.close(resolveClose));
+  return port;
+}
+
+async function waitForDebugger(port, child, stderrTail) {
+  let exited = false;
+  child.once('exit', () => {
+    exited = true;
+  });
+
+  for (let attempt = 0; attempt < 180; attempt += 1) {
+    if (exited) {
+      const tail = stderrTail();
+      throw new Error(
+        `Chrome exited before DevTools was ready.${tail ? `\n${tail}` : ''}`
+      );
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/version`);
+      if (response.ok) return;
+    } catch {
+      // Chrome is still starting.
+    }
+    await sleep(250);
+  }
+
+  const tail = stderrTail();
+  throw new Error(
+    `Chrome did not expose DevTools on port ${port} within 45 s.${tail ? `\n${tail}` : ''}`
+  );
 }
 
 function connectCdp(wsEndpoint) {
@@ -261,10 +274,11 @@ async function main() {
   const serverPort = server.address().port;
   const profile = mkdtempSync(join(tmpdir(), 'jovian-perf-'));
   const chrome = resolveChrome();
+  const debugPort = await getFreePort();
 
   const args = [
     '--headless=new',
-    '--remote-debugging-port=0',
+    `--remote-debugging-port=${debugPort}`,
     `--user-data-dir=${profile}`,
     '--use-gl=angle',
     '--use-angle=swiftshader',
@@ -277,11 +291,16 @@ async function main() {
   }
 
   const child = spawn(chrome, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  let stderr = '';
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk) => {
+    stderr = `${stderr}${chunk}`.slice(-1_000);
+  });
+
   let client = null;
 
   try {
-    const endpoint = await waitForDevTools(child);
-    const debugPort = new URL(endpoint).port;
+    await waitForDebugger(debugPort, child, () => stderr.trim());
     const targets = await (
       await fetch(`http://127.0.0.1:${debugPort}/json`)
     ).json();
