@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { MissionSimulator } from '../src/core/MissionSimulator.js';
+import { MISSIONS } from '../src/data/HistoricalMissions.js';
 
 function createSimulator() {
   return new MissionSimulator(
@@ -8,6 +9,13 @@ function createSimulator() {
     {},
     new THREE.PerspectiveCamera(),
     {}
+  );
+}
+
+function createProbeSource() {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial()
   );
 }
 
@@ -34,5 +42,63 @@ describe('MissionSimulator playback mapping', () => {
     expect(simulator.probeModels.galileo).toBeTruthy();
     expect(simulator.probeModels.juno).toBeTruthy();
     expect(simulator.galileoProbeMesh).toBeTruthy();
+  });
+
+  it('replaces a fallback probe with a loaded model', () => {
+    const simulator = createSimulator();
+    const fallback = simulator.probeModels.pioneer;
+    expect(fallback.name).toBe('PioneerFallback');
+
+    simulator.activeMission = MISSIONS.JUPITER.pioneer10;
+    simulator.refreshProbeVisibility();
+
+    const wrapper = simulator.applyProbeModel(
+      'pioneer11',
+      createProbeSource()
+    );
+
+    expect(wrapper.name).toBe('PioneerModelWrapper');
+    expect(wrapper.userData.glb).toBe(true);
+    expect(simulator.probeModels.pioneer).toBe(wrapper);
+    expect(fallback.parent).toBeNull();
+    expect(wrapper.visible).toBe(true);
+    expect(wrapper.parent).toBe(simulator.probeVisual);
+  });
+
+  it('keeps one wrapper when the same model is applied twice', () => {
+    const simulator = createSimulator();
+    simulator.activeMission = MISSIONS.JUPITER.pioneer11;
+
+    const source = createProbeSource();
+    const first = simulator.applyProbeModel('pioneer11', source);
+    const second = simulator.applyProbeModel('pioneer11', source);
+
+    expect(second).toBe(first);
+    expect(
+      simulator.probeVisual.children.filter(
+        (child) => child.name === 'PioneerModelWrapper'
+      )
+    ).toHaveLength(1);
+  });
+
+  it('keeps a loaded model hidden when another mission is active', () => {
+    const simulator = createSimulator();
+    simulator.activeMission = MISSIONS.JUPITER.juno;
+    simulator.refreshProbeVisibility();
+
+    const wrapper = simulator.applyProbeModel(
+      'voyager1',
+      createProbeSource()
+    );
+
+    expect(wrapper.visible).toBe(false);
+  });
+
+  it('ignores unknown model keys and empty sources', () => {
+    const simulator = createSimulator();
+    const source = createProbeSource();
+
+    expect(simulator.applyProbeModel('unknown', source)).toBeNull();
+    expect(simulator.applyProbeModel('pioneer11', null)).toBeNull();
   });
 });

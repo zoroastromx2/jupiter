@@ -71,6 +71,12 @@ const ASSET_SPECS = [
   { key: 'callistoNormal', file: 'textures/callisto_normal.jpg', optional: true }
 ];
 
+const PROBE_MODEL_FILES = {
+  pioneer11: 'models/pioneer_11.glb',
+  voyager1: 'models/voyager_1.glb',
+  voyager2: 'models/voyager_2.glb'
+};
+
 /**
  * Texture pipeline for the Jovian system. Albedo maps are authored in sRGB;
  * normals, cloud masks and any scalar data maps stay linear.
@@ -102,6 +108,7 @@ export class AssetFetcher {
         voyager2: null
       }
     };
+    this.probeLoads = {};
   }
 
   assetUrl(relativePath) {
@@ -191,16 +198,38 @@ export class AssetFetcher {
     });
   }
 
+  /**
+   * Load one mission model on demand. The in-flight promise is shared and a
+   * resolved model is cached for the session; failures stay retryable.
+   */
+  loadProbeModel(key) {
+    const file = PROBE_MODEL_FILES[key];
+    if (!file) return Promise.resolve(null);
+
+    const cached = this.assets.models[key];
+    if (cached) return Promise.resolve(cached);
+    if (this.probeLoads[key]) return this.probeLoads[key];
+
+    const pending = this.loadGLB(file)
+      .then((scene) => {
+        if (scene) this.assets.models[key] = scene;
+        return scene;
+      })
+      .finally(() => {
+        delete this.probeLoads[key];
+      });
+
+    this.probeLoads[key] = pending;
+    return pending;
+  }
+
   async loadProbeModels() {
-    const [pioneer11, voyager1, voyager2] = await Promise.all([
-      this.loadGLB('models/pioneer_11.glb'),
-      this.loadGLB('models/voyager_1.glb'),
-      this.loadGLB('models/voyager_2.glb')
+    await Promise.all([
+      this.loadProbeModel('pioneer11'),
+      this.loadProbeModel('voyager1'),
+      this.loadProbeModel('voyager2')
     ]);
 
-    this.assets.models.pioneer11 = pioneer11;
-    this.assets.models.voyager1 = voyager1;
-    this.assets.models.voyager2 = voyager2;
     return this.assets.models;
   }
 }

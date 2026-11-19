@@ -9,6 +9,27 @@ const PATH_SEGMENTS = 360;
 const TWO_PI = Math.PI * 2;
 const MODEL_TARGET_SIZE = 8;
 
+const PROBE_MODEL_SPECS = {
+  pioneer11: {
+    probeKey: 'pioneer',
+    name: 'PioneerModel',
+    rotationX: 0,
+    warm: true
+  },
+  voyager1: {
+    probeKey: 'voyager1',
+    name: 'Voyager1Model',
+    rotationX: Math.PI / 2,
+    warm: false
+  },
+  voyager2: {
+    probeKey: 'voyager2',
+    name: 'Voyager2Model',
+    rotationX: Math.PI / 2,
+    warm: false
+  }
+};
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -165,6 +186,7 @@ export class MissionSimulator {
     const wrapper = new THREE.Group();
     wrapper.name = `${name}Wrapper`;
     wrapper.rotation.x = rotationX;
+    wrapper.userData.glb = true;
     if (warmNormalizer) wrapper.userData.warm = true;
     wrapper.visible = false;
     wrapper.add(mesh);
@@ -701,6 +723,32 @@ export class MissionSimulator {
       active.visible = true;
       this.probeVisual.add(active);
     }
+  }
+
+  /**
+   * Replace a fallback probe with a GLB that loaded after the mission was
+   * selected. Safe to call repeatedly; the active mission decides visibility.
+   */
+  applyProbeModel(modelKey, source) {
+    const spec = PROBE_MODEL_SPECS[modelKey];
+    if (!spec || !source) return null;
+
+    const existing = this.probeModels[spec.probeKey];
+    if (existing?.userData?.glb) return existing;
+
+    const wrapper = this.buildPhotoModel(
+      source,
+      spec.name,
+      MODEL_TARGET_SIZE,
+      spec.rotationX,
+      spec.warm
+    );
+    if (!wrapper) return null;
+
+    if (existing) existing.removeFromParent();
+    this.probeModels[spec.probeKey] = wrapper;
+    this.refreshProbeVisibility();
+    return wrapper;
   }
 
   setInstrumentMode(locked) {

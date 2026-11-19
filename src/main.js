@@ -111,6 +111,7 @@ let simulationDate = new Date();
 let selectedBodyId = 'jupiter';
 let simulationStarted = false;
 let followProbe = false;
+let assetFetcher = null;
 
 let missionSelectorEl;
 let missionDescriptionEl;
@@ -378,6 +379,20 @@ function populateMissionSelector() {
   instrumentLensBtn.addEventListener('click', toggleInstrumentLens);
 }
 
+function ensureMissionProbeModel(mission, key) {
+  if (!assetFetcher || !mission) return;
+
+  let modelKey = null;
+  if (mission.model === 'pioneer_glb') modelKey = 'pioneer11';
+  else if (mission.model === 'voyager') modelKey = key;
+
+  if (!modelKey) return;
+
+  assetFetcher.loadProbeModel(modelKey).then((source) => {
+    if (source) missionSim.applyProbeModel(modelKey, source);
+  });
+}
+
 function selectMission(planet, key) {
   const mission = MISSIONS[planet]?.[key];
   if (!mission || mission.available === false) return;
@@ -398,6 +413,7 @@ function selectMission(planet, key) {
 
   missionSim.setInstrumentMode(false);
   missionSim.loadMission(planet, key, state.daysSinceEpoch);
+  ensureMissionProbeModel(mission, key);
   missionSim.update(state.daysSinceEpoch, camera);
   cameraController.setOpticsMode(mission.opticsMode);
 
@@ -725,6 +741,12 @@ function tick() {
 
   if (!simulationStarted) {
     simulationStarted = true;
+    if (
+      typeof performance !== 'undefined' &&
+      typeof performance.mark === 'function'
+    ) {
+      performance.mark('jovian:first-frame');
+    }
     window.requestAnimationFrame(() => {
       document.getElementById('loader').classList.add('is-hidden');
     });
@@ -817,14 +839,11 @@ async function bootstrapApp() {
   labelRenderer.domElement.style.pointerEvents = 'none';
   document.getElementById('labels-layer').appendChild(labelRenderer.domElement);
 
-  const fetcher = new AssetFetcher({
+  assetFetcher = new AssetFetcher({
     maxAnisotropy: renderer.capabilities.getMaxAnisotropy(),
     onProgress: setLoaderProgress
   });
-  const assets = await fetcher.loadAll();
-  const loaderLabel = document.getElementById('loader-label');
-  if (loaderLabel) loaderLabel.textContent = 'Loading mission spacecraft';
-  await fetcher.loadProbeModels();
+  const assets = await assetFetcher.loadAll();
 
   state.daysSinceEpoch = dateToDaysSinceEpoch(new Date());
   simulationDate = setDateFromDays(state.daysSinceEpoch);
