@@ -35,24 +35,52 @@
             <circle cx="51.5" cy="18.5" r="2.1" class="brand-moon" />
           </svg>
           <div class="brand-copy">
-            <span class="eyebrow">JOVIAN SYSTEM / SOL V</span>
-            <h1>Jupiter</h1>
-            <p>Galilean observatory · 5.20 AU</p>
+            <span class="eyebrow" data-i18n="brandEyebrow">JOVIAN SYSTEM / SOL V</span>
+            <h1 data-i18n="brandTitle">Jupiter</h1>
+            <p data-i18n="brandSubtitle">Galilean observatory · 5.20 AU</p>
           </div>
         </div>
 
-        <div class="clock glass" aria-live="polite">
-          <div class="clock-heading">
-            <span class="eyebrow">SIMULATION EPOCH</span>
-            <span id="hud-status" class="status-pill">LIVE</span>
+        <div class="topbar-right">
+          <div
+            id="lang-switcher"
+            class="lang-switcher glass"
+            role="group"
+            aria-label="Interface language"
+          >
+            <button
+              class="lang-btn"
+              type="button"
+              data-lang="es"
+              lang="es"
+              aria-pressed="false"
+            >
+              ES
+            </button>
+            <button
+              class="lang-btn is-active"
+              type="button"
+              data-lang="en"
+              lang="en"
+              aria-pressed="true"
+            >
+              EN
+            </button>
           </div>
-          <div class="clock-date">
-            <time id="hud-date">—</time>
-            <span id="hud-time">—</span>
-          </div>
-          <div class="clock-rate">
-            <span>TIME RATE</span>
-            <strong id="clock-rate">1× · real time</strong>
+
+          <div class="clock glass" aria-live="polite">
+            <div class="clock-heading">
+              <span class="eyebrow" data-i18n="clockEyebrow">SIMULATION EPOCH</span>
+              <span id="hud-status" class="status-pill">LIVE</span>
+            </div>
+            <div class="clock-date">
+              <time id="hud-date">—</time>
+              <span id="hud-time">—</span>
+            </div>
+            <div class="clock-rate">
+              <span data-i18n="clockRateLabel">TIME RATE</span>
+              <strong id="clock-rate">1× · real time</strong>
+            </div>
           </div>
         </div>
       </header>
@@ -61,7 +89,7 @@
         <div class="left-stack">
           <section class="panel glass target-panel" aria-labelledby="targets-title">
             <div class="panel-head">
-              <h2 id="targets-title">Targets</h2>
+              <h2 id="targets-title" data-i18n="targetsTitle">Targets</h2>
               <span class="panel-index">01</span>
             </div>
 
@@ -120,25 +148,25 @@
 
           <section class="panel glass mission-panel" aria-labelledby="mission-title">
             <div class="panel-head">
-              <h2 id="mission-title">Missions</h2>
+              <h2 id="mission-title" data-i18n="missionsTitle">Missions</h2>
               <span class="panel-index">05</span>
             </div>
-            <label class="mission-label" for="mission-selector">Historical flight</label>
+            <label class="mission-label" for="mission-selector" data-i18n="historicalFlight">Historical flight</label>
             <select id="mission-selector" class="mission-select">
-              <option value="">Select a mission</option>
+              <option id="mission-placeholder-option" value="" data-i18n="selectMission">Select a mission</option>
             </select>
             <p id="mission-description" class="mission-description" hidden></p>
             <div class="mission-actions">
               <button id="btn-follow-probe" class="action mission-action" type="button" disabled>
-                <span>Follow probe</span>
+                <span data-i18n="followProbe">Follow probe</span>
                 <span id="follow-state" class="action-state">OFF</span>
               </button>
               <button id="btn-instrument-view" class="action mission-action" type="button" disabled>
-                <span>Instrument view</span>
+                <span data-i18n="instrumentView">Instrument view</span>
                 <span id="instrument-view-state" class="action-state">OFF</span>
               </button>
               <button id="btn-instrument-lens" class="action mission-action wide" type="button" disabled>
-                <span>Lens: WAC / NAC</span>
+                <span data-i18n="lensLabel">Lens: WAC / NAC</span>
                 <span id="instrument-lens-state" class="action-state">WAC</span>
               </button>
             </div>
@@ -146,7 +174,7 @@
 
           <section class="panel glass view-panel" aria-labelledby="view-title">
             <div class="panel-head">
-              <h2 id="view-title">View</h2>
+              <h2 id="view-title" data-i18n="viewTitle">View</h2>
               <span class="panel-index">02</span>
             </div>
             <button
@@ -155,7 +183,7 @@
               type="button"
               aria-pressed="true"
             >
-              <span>Orbit paths</span>
+              <span data-i18n="orbitPaths">Orbit paths</span>
               <span class="toggle-state" data-state-for="orbits">ON</span>
             </button>
             <button
@@ -164,7 +192,7 @@
               type="button"
               aria-pressed="false"
             >
-              <span>CSS2D labels</span>
+              <span data-i18n="css2dLabels">CSS2D labels</span>
               <span class="toggle-state" data-state-for="labels">OFF</span>
             </button>
             <button
@@ -173,16 +201,17 @@
               type="button"
               aria-pressed="true"
             >
-              <span>Jupiter rings · Halo / Gossamer</span>
+              <span data-i18n="jupiterRings">Jupiter rings · Halo / Gossamer</span>
               <span class="toggle-state" data-state-for="rings">ON</span>
             </button>
             <button id="btn-rings-backlight" class="toggle-row preset-row" type="button">
-              <span>Ring backlight</span>
+              <span data-i18n="ringBacklight">Ring backlight</span>
               <span class="toggle-state">165°</span>
             </button>
             <div class="hint-block">
-              <span>DRAG</span> orbit camera · <span>SCROLL</span> zoom ·
-              <span>ESC</span> leave surface
+              <span data-i18n="hintDragKey">DRAG</span> <em class="hint-text" data-i18n="hintDragAction">orbit camera</em> ·
+              <span data-i18n="hintScrollKey">SCROLL</span> <em class="hint-text" data-i18n="hintScrollAction">zoom</em> ·
+              <span data-i18n="hintEscKey">ESC</span> <em class="hint-text" data-i18n="hintEscAction">leave surface</em>
             </div>
           </section>
         </div>
@@ -259,7 +288,7 @@
 
           <section class="panel glass time-panel" aria-labelledby="time-title">
             <div class="panel-head">
-              <h2 id="time-title">Time Rate</h2>
+              <h2 id="time-title" data-i18n="timeRateTitle">Time Rate</h2>
               <span class="panel-index">03</span>
             </div>
 
@@ -271,23 +300,23 @@
                 <span>Pause</span>
               </button>
               <div class="speed-group" role="group" aria-label="Simulation time rate">
-                <button class="speed-btn is-active" type="button" data-rate="1" aria-pressed="true">Real</button>
-                <button class="speed-btn" type="button" data-rate="60" aria-pressed="false">1 min/s</button>
-                <button class="speed-btn" type="button" data-rate="3600" aria-pressed="false">1 h/s</button>
-                <button class="speed-btn" type="button" data-rate="86400" aria-pressed="false">1 d/s</button>
+                <button class="speed-btn is-active" type="button" data-rate="1" aria-pressed="true" data-i18n="rateReal">Real</button>
+                <button class="speed-btn" type="button" data-rate="60" aria-pressed="false" data-i18n="rate1Min">1 min/s</button>
+                <button class="speed-btn" type="button" data-rate="3600" aria-pressed="false" data-i18n="rate1Hour">1 h/s</button>
+                <button class="speed-btn" type="button" data-rate="86400" aria-pressed="false" data-i18n="rate1Day">1 d/s</button>
               </div>
               <span id="speed-readout" class="speed-readout">1× · real time</span>
             </div>
 
             <div class="time-machine">
-              <label for="time-date">Time machine</label>
+              <label for="time-date" data-i18n="timeMachineLabel">Time machine</label>
               <div class="date-row">
                 <input id="time-date" type="date" aria-label="Select simulation date" />
-                <button id="btn-jump" class="action primary compact" type="button">Jump</button>
-                <button id="btn-now" class="action compact" type="button">Now</button>
+                <button id="btn-jump" class="action primary compact" type="button" data-i18n="jump">Jump</button>
+                <button id="btn-now" class="action compact" type="button" data-i18n="now">Now</button>
               </div>
               <p class="hint-block">
-                Prueba <strong>2030-04-01</strong> cerca del equinoccio y usa 1 h/s o 1 d/s para ver las sombras de los tránsitos.
+                <em class="hint-text" data-i18n="equinoxHintBefore">Try </em><strong>2030-04-01</strong><em class="hint-text" data-i18n="equinoxHintAfter"> near the equinox and use 1 h/s or 1 d/s to watch transit shadows.</em>
               </p>
             </div>
           </section>
@@ -295,39 +324,39 @@
 
         <aside class="panel glass telemetry-panel" aria-labelledby="telemetry-title">
           <div class="panel-head">
-            <h2 id="telemetry-title">Telemetry</h2>
+            <h2 id="telemetry-title" data-i18n="telemetryTitle">Telemetry</h2>
             <span class="panel-index">04</span>
           </div>
 
           <div class="telemetry-target">
-            <span class="eyebrow">ACTIVE BODY</span>
+            <span class="eyebrow" data-i18n="activeBody">ACTIVE BODY</span>
             <strong id="telemetry-target">Jupiter</strong>
             <span id="telemetry-type">Gas giant</span>
           </div>
 
           <dl class="telemetry-grid">
             <div>
-              <dt>Mean radius</dt>
+              <dt data-i18n="meanRadius">Mean radius</dt>
               <dd id="telemetry-radius">—</dd>
             </div>
             <div>
-              <dt>Orbit radius</dt>
+              <dt data-i18n="orbitRadius">Orbit radius</dt>
               <dd id="telemetry-orbit">—</dd>
             </div>
             <div>
-              <dt>Orbital period</dt>
+              <dt data-i18n="orbitalPeriod">Orbital period</dt>
               <dd id="telemetry-period">—</dd>
             </div>
             <div>
-              <dt>Eccentricity</dt>
+              <dt data-i18n="eccentricity">Eccentricity</dt>
               <dd id="telemetry-eccentricity">—</dd>
             </div>
             <div>
-              <dt>Sun distance</dt>
+              <dt data-i18n="sunDistance">Sun distance</dt>
               <dd id="telemetry-sun-distance">—</dd>
             </div>
             <div>
-              <dt>Axial tilt</dt>
+              <dt data-i18n="axialTilt">Axial tilt</dt>
               <dd id="telemetry-tilt">3.13°</dd>
             </div>
           </dl>
@@ -340,11 +369,11 @@
       </main>
 
       <footer class="bottombar">
-        <span>PHYSICAL SCALE · 1 UNIT = 1,000 KM</span>
+        <span data-i18n="footerScale">PHYSICAL SCALE · 1 UNIT = 1,000 KM</span>
         <span class="footer-sep" aria-hidden="true"></span>
-        <span>J2000 KEPLERIAN PROPAGATION</span>
+        <span data-i18n="footerKepler">J2000 KEPLERIAN PROPAGATION</span>
         <span class="footer-sep" aria-hidden="true"></span>
-        <span>ANALYTICAL TRANSIT / ECLIPSE SHADOWS</span>
+        <span data-i18n="footerShadows">ANALYTICAL TRANSIT / ECLIPSE SHADOWS</span>
       </footer>
 
       <div id="instrument-hud" hidden>
@@ -360,15 +389,15 @@
             <span id="instrument-lens-readout">WAC 32°</span>
           </div>
           <div class="instrument-row">
-            <span>INSTRUMENT</span>
+            <span data-i18n="instrumentLabel">INSTRUMENT</span>
             <span id="instrument-name">—</span>
           </div>
           <div class="instrument-row">
-            <span>TARGET DIST</span>
+            <span data-i18n="targetDistLabel">TARGET DIST</span>
             <span id="instrument-distance">—</span>
           </div>
           <div class="instrument-row">
-            <span>REL VELOCITY</span>
+            <span data-i18n="relVelocityLabel">REL VELOCITY</span>
             <span id="instrument-velocity">—</span>
           </div>
         </div>
@@ -388,10 +417,10 @@
           <span class="loader-orbit loader-orbit-3"><i></i></span>
           <span class="loader-orbit loader-orbit-4"><i></i></span>
         </div>
-        <span class="eyebrow">JOVIAN OBSERVATORY</span>
-        <h2>Assembling the system</h2>
+        <span class="eyebrow" data-i18n="loaderEyebrow">JOVIAN OBSERVATORY</span>
+        <h2 data-i18n="loaderHeading">Assembling the system</h2>
         <div class="loader-bar"><span id="loader-progress"></span></div>
-        <p><span id="loader-label">Loading assets</span> · <span id="loader-percent">0%</span></p>
+        <p><span id="loader-label" data-i18n="loaderAssets">Loading assets</span> · <span id="loader-percent">0%</span></p>
       </div>
     </div>
 

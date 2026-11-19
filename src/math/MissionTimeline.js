@@ -1,16 +1,11 @@
 import { J2000_EPOCH_MS, MS_PER_DAY } from './AstroScale.js';
+import {
+  DEFAULT_LANGUAGE,
+  getMilestoneTitle,
+  getTargetLabel
+} from '../i18n/I18n.js';
 
 export const MS_PER_HOUR = 3600000;
-
-const TARGET_LABELS = {
-  JUPITER: 'Jupiter',
-  JUPITER_RINGS: 'Rings',
-  IO: 'Io',
-  EUROPA: 'Europa',
-  GANYMEDE: 'Ganymede',
-  CALLISTO: 'Callisto',
-  SATURN: 'Saturn'
-};
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -128,9 +123,8 @@ export function formatWindowBoundHours(hours) {
 /**
  * Convert an internal targetKey (e.g. JUPITER_RINGS) into a concise UI label.
  */
-export function formatTargetLabel(targetKey) {
-  if (!targetKey) return 'Jupiter';
-  return TARGET_LABELS[targetKey] ?? targetKey;
+export function formatTargetLabel(targetKey, lang = DEFAULT_LANGUAGE) {
+  return getTargetLabel(targetKey, lang);
 }
 
 /**
@@ -157,19 +151,34 @@ export function getTooltipAlignment(t) {
 /**
  * Build formatted display fields and anchor placement for a hovered milestone marker tooltip.
  */
-export function buildMilestoneTooltipData(mission, milestone) {
+export function buildMilestoneTooltipData(
+  mission,
+  milestone,
+  lang = null,
+  milestoneIndex = -1
+) {
   if (!mission || !milestone) return null;
   const clampedT = clamp(Number.isFinite(milestone.t) ? milestone.t : 0, 0, 1);
   const deltaHours = missionUToDeltaHours(mission, clampedT);
   const fovDegrees = Number.isFinite(milestone.defaultFov)
     ? Math.round(milestone.defaultFov)
     : 0;
+  const resolvedIndex =
+    milestoneIndex >= 0
+      ? milestoneIndex
+      : Array.isArray(mission.milestones)
+        ? mission.milestones.indexOf(milestone)
+        : -1;
+  const title =
+    lang && resolvedIndex >= 0
+      ? getMilestoneTitle(mission.key, resolvedIndex, lang, milestone.title ?? '')
+      : milestone.title ?? '';
 
   return {
-    title: milestone.title ?? '',
+    title,
     offset: formatMissionOffset(deltaHours),
     fov: `FOV ${fovDegrees}°`,
-    target: formatTargetLabel(milestone.targetKey),
+    target: formatTargetLabel(milestone.targetKey, lang ?? DEFAULT_LANGUAGE),
     instrument: milestone.instrumentName ?? '',
     percent: clampedT * 100,
     align: getTooltipAlignment(clampedT)

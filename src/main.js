@@ -16,8 +16,7 @@ import { MissionSimulator } from './core/MissionSimulator.js';
 import { StarfieldSimulator } from './core/StarfieldSimulator.js';
 import {
   MISSIONS,
-  MISSION_ORDER,
-  MISSION_PLANET_LABELS
+  MISSION_ORDER
 } from './data/HistoricalMissions.js';
 import { VintageOpticsShader } from './shaders/VintageOpticsShader.js';
 import {
@@ -27,61 +26,45 @@ import {
   dateToDaysSinceEpoch,
   setDateFromDays
 } from './math/AstroScale.js';
-import { advanceSimulationDays, formatRate } from './math/TimeRate.js';
+import { advanceSimulationDays } from './math/TimeRate.js';
 import { missionUToDaysSinceEpoch } from './math/MissionTimeline.js';
 import { MissionTimelineUI } from './ui/MissionTimelineUI.js';
+import {
+  DEFAULT_LANGUAGE,
+  LANG_STORAGE_KEY,
+  detectInitialLanguage,
+  formatLocalizedRate,
+  getBodyMeta,
+  getMissionDescription,
+  getMissionPlanetLabel,
+  normalizeLanguage,
+  t
+} from './i18n/I18n.js';
 import './style.css';
 
 const BODY_ORDER = ['jupiter', 'io', 'europa', 'ganymede', 'callisto'];
 const MOON_IDS = ['IO', 'EUROPA', 'GANYMEDE', 'CALLISTO'];
 
-const BODY_META = {
-  jupiter: {
-    name: 'Jupiter',
-    type: 'Gas giant',
-    radius: '71,492 km',
-    orbit: '5.20 AU',
-    period: '0.414 d (spin)',
-    eccentricity: '0.0489',
-    tilt: '3.13°'
-  },
-  io: {
-    name: 'Io',
-    type: 'Galilean moon',
-    radius: '1,821.6 km',
-    orbit: '421,700 km',
-    period: '1.769 d',
-    eccentricity: '0.0041',
-    tilt: '0.00° (locked)'
-  },
-  europa: {
-    name: 'Europa',
-    type: 'Galilean moon',
-    radius: '1,560.8 km',
-    orbit: '671,034 km',
-    period: '3.551 d',
-    eccentricity: '0.0090',
-    tilt: '0.00° (locked)'
-  },
-  ganymede: {
-    name: 'Ganymede',
-    type: 'Galilean moon',
-    radius: '2,634.1 km',
-    orbit: '1,070,412 km',
-    period: '7.155 d',
-    eccentricity: '0.0013',
-    tilt: '0.00° (locked)'
-  },
-  callisto: {
-    name: 'Callisto',
-    type: 'Galilean moon',
-    radius: '2,410.3 km',
-    orbit: '1,882,709 km',
-    period: '16.689 d',
-    eccentricity: '0.0074',
-    tilt: '0.00° (locked)'
+let currentLang = DEFAULT_LANGUAGE;
+const bodyLabelNodes = {};
+const missionOptgroups = {};
+const disabledMissionOptions = [];
+
+function loadStoredLanguage() {
+  try {
+    return window.localStorage.getItem(LANG_STORAGE_KEY);
+  } catch {
+    return null;
   }
-};
+}
+
+function saveStoredLanguage(lang) {
+  try {
+    window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+  } catch {
+    // Ignore storage access errors in restricted environments.
+  }
+}
 
 const state = {
   daysSinceEpoch: 0,
@@ -147,19 +130,22 @@ function sceneRadiusFor(id, simulator) {
   return simulator?.sceneRadius ?? 1;
 }
 
-function createLabel(simulator, title, subtitle, height) {
+function createLabel(id, simulator, height) {
+  const meta = getBodyMeta(id, currentLang);
   const element = document.createElement('div');
   element.className = 'body-label';
 
   const name = document.createElement('span');
-  name.textContent = title;
+  name.textContent = meta?.labelName ?? id.toUpperCase();
 
   const sub = document.createElement('span');
   sub.className = 'label-sub';
-  sub.textContent = subtitle;
+  sub.textContent = meta?.labelSub ?? '';
 
   element.appendChild(name);
   element.appendChild(sub);
+
+  bodyLabelNodes[id] = { nameEl: name, subEl: sub };
 
   const label = new CSS2DObject(element);
   label.position.set(0, height, 0);
@@ -168,15 +154,40 @@ function createLabel(simulator, title, subtitle, height) {
 }
 
 function createLabels() {
-  createLabel(jupiterSim, 'JUPITER', '5.20 AU · 3.13°', 1.16);
-  createLabel(moonSimulators[0], 'IO', '1.769 d', 1.55);
-  createLabel(moonSimulators[1], 'EUROPA', '3.551 d', 1.55);
-  createLabel(moonSimulators[2], 'GANYMEDE', '7.155 d', 1.55);
-  createLabel(moonSimulators[3], 'CALLISTO', '16.689 d', 1.55);
+  createLabel('jupiter', jupiterSim, 1.16);
+  createLabel('io', moonSimulators[0], 1.55);
+  createLabel('europa', moonSimulators[1], 1.55);
+  createLabel('ganymede', moonSimulators[2], 1.55);
+  createLabel('callisto', moonSimulators[3], 1.55);
+}
+
+function refreshBodyLabels() {
+  for (let i = 0; i < BODY_ORDER.length; i += 1) {
+    const id = BODY_ORDER[i];
+    const nodes = bodyLabelNodes[id];
+    const meta = getBodyMeta(id, currentLang);
+    if (!nodes || !meta) continue;
+    nodes.nameEl.textContent = meta.labelName;
+    nodes.subEl.textContent = meta.labelSub;
+  }
+}
+
+function refreshTargetListUI() {
+  for (let i = 0; i < BODY_ORDER.length; i += 1) {
+    const id = BODY_ORDER[i];
+    const button = targetButtons[id];
+    const meta = getBodyMeta(id, currentLang);
+    if (!button || !meta) continue;
+    const nameEl = button.querySelector('.target-name');
+    const metaEl = button.querySelector('.target-meta');
+    if (nameEl) nameEl.textContent = meta.name;
+    if (metaEl) metaEl.textContent = meta.shortMeta;
+  }
 }
 
 function refreshSelectionUI() {
-  const meta = BODY_META[selectedBodyId];
+  const meta = getBodyMeta(selectedBodyId, currentLang);
+  if (!meta) return;
   const simulator = bodySimulatorFor(selectedBodyId);
 
   for (let i = 0; i < BODY_ORDER.length; i += 1) {
@@ -196,12 +207,14 @@ function refreshSelectionUI() {
   const surfaceLabel = document.getElementById('btn-surface-label');
   const surfaceButton = document.getElementById('btn-surface');
 
-  focusLabel.textContent = 'Close orbit';
+  focusLabel.textContent = t(currentLang, 'closeOrbit');
   if (cameraController?.isSurfaceLocked) {
-    surfaceLabel.textContent = 'Exit surface';
+    surfaceLabel.textContent = t(currentLang, 'exitSurface');
   } else {
     surfaceLabel.textContent =
-      selectedBodyId === 'jupiter' ? 'Cloud-top view' : 'Surface view';
+      selectedBodyId === 'jupiter'
+        ? t(currentLang, 'cloudTopView')
+        : t(currentLang, 'surfaceView');
   }
   if (surfaceButton) surfaceButton.disabled = !simulator;
 
@@ -212,18 +225,23 @@ function updateViewState() {
   const viewState = document.getElementById('view-state');
   if (!viewState) return;
 
+  const meta = getBodyMeta(selectedBodyId, currentLang);
+  const bodyName = (meta?.name ?? selectedBodyId).toUpperCase();
+  const surfaceLabel = document.getElementById('btn-surface-label');
+
   if (cameraController?.isInstrumentLocked && missionSim?.activeMission) {
     viewState.textContent =
-      `INSTRUMENT · ${missionSim.activeMission.name.toUpperCase()}`;
+      `${t(currentLang, 'viewInstrument')} · ${missionSim.activeMission.name.toUpperCase()}`;
   } else if (cameraController?.isSurfaceLocked) {
-    viewState.textContent = `SURFACE · ${BODY_META[selectedBodyId].name.toUpperCase()}`;
-    document.getElementById('btn-surface-label').textContent = 'Exit surface';
+    viewState.textContent = `${t(currentLang, 'viewSurface')} · ${bodyName}`;
+    if (surfaceLabel) surfaceLabel.textContent = t(currentLang, 'exitSurface');
   } else {
-    viewState.textContent = `ORBITAL · ${BODY_META[selectedBodyId].name.toUpperCase()}`;
-    if (selectedBodyId !== 'jupiter') {
-      document.getElementById('btn-surface-label').textContent = 'Surface view';
-    } else {
-      document.getElementById('btn-surface-label').textContent = 'Cloud-top view';
+    viewState.textContent = `${t(currentLang, 'viewOrbital')} · ${bodyName}`;
+    if (surfaceLabel) {
+      surfaceLabel.textContent =
+        selectedBodyId !== 'jupiter'
+          ? t(currentLang, 'surfaceView')
+          : t(currentLang, 'cloudTopView');
     }
   }
 }
@@ -236,6 +254,21 @@ function applyOrbitVisibility() {
   for (let i = 0; i < moonSimulators.length; i += 1) {
     moonSimulators[i].setOrbitVisible(visible);
   }
+}
+
+function refreshViewToggles() {
+  const onLabel = t(currentLang, 'stateOn');
+  const offLabel = t(currentLang, 'stateOff');
+
+  const orbitsState = document.querySelector('[data-state-for="orbits"]');
+  if (orbitsState) orbitsState.textContent = orbitsVisible ? onLabel : offLabel;
+
+  const labelsVisible = document.body.classList.contains('show-labels');
+  const labelsState = document.querySelector('[data-state-for="labels"]');
+  if (labelsState) labelsState.textContent = labelsVisible ? onLabel : offLabel;
+
+  const ringsState = document.querySelector('[data-state-for="rings"]');
+  if (ringsState) ringsState.textContent = ringsVisible ? onLabel : offLabel;
 }
 
 function refreshMissionUi() {
@@ -257,13 +290,24 @@ function refreshMissionUi() {
     'aria-pressed',
     String(Boolean(cameraController?.isInstrumentLocked))
   );
-  followStateEl.textContent = active && followProbe ? 'ON' : 'OFF';
+
+  const onLabel = t(currentLang, 'stateOn');
+  const offLabel = t(currentLang, 'stateOff');
+  followStateEl.textContent = active && followProbe ? onLabel : offLabel;
   instrumentViewStateEl.textContent = cameraController?.isInstrumentLocked
-    ? 'ON'
-    : 'OFF';
+    ? onLabel
+    : offLabel;
   instrumentLensStateEl.textContent = cameraController?.isInstrumentLocked
     ? `${cameraController.activeLensMode} ${Math.round(camera.fov)}°`
     : '—';
+
+  if (active && missionDescriptionEl) {
+    missionDescriptionEl.textContent = getMissionDescription(
+      missionSim.activeMission.key,
+      currentLang,
+      missionSim.activeMission.description
+    );
+  }
 
   if (!cameraController?.isInstrumentLocked) {
     instrumentHudEl.hidden = true;
@@ -272,6 +316,7 @@ function refreshMissionUi() {
 }
 
 function refreshInstrumentReadout() {
+  if (!instrumentHudEl) return;
   const active = Boolean(missionSim?.activeMission);
   if (!active || !cameraController?.isInstrumentLocked) {
     instrumentHudEl.hidden = true;
@@ -337,7 +382,7 @@ function populateMissionSelector() {
     const planet = planets[p];
     const keys = MISSION_ORDER[planet] ?? [];
     const group = document.createElement('optgroup');
-    group.label = MISSION_PLANET_LABELS[planet] ?? planet;
+    group.label = getMissionPlanetLabel(planet, currentLang);
 
     let count = 0;
     for (let i = 0; i < keys.length; i += 1) {
@@ -350,13 +395,17 @@ function populateMissionSelector() {
       option.textContent = `${mission.name} · ${mission.timestamp.slice(0, 4)}`;
       if (planet !== 'JUPITER' || mission.available === false) {
         option.disabled = true;
-        option.title = 'The Saturnian system is not loaded in this build.';
+        option.title = t(currentLang, 'saturnUnavailable');
+        disabledMissionOptions.push(option);
       }
       group.appendChild(option);
       count += 1;
     }
 
-    if (count > 0) missionSelectorEl.appendChild(group);
+    if (count > 0) {
+      missionOptgroups[planet] = group;
+      missionSelectorEl.appendChild(group);
+    }
   }
 
   missionSelectorEl.addEventListener('change', () => {
@@ -487,7 +536,11 @@ function selectMission(planet, key) {
   );
 
   missionSelectorEl.value = `${planet}:${key}`;
-  missionDescriptionEl.textContent = mission.description;
+  missionDescriptionEl.textContent = getMissionDescription(
+    key,
+    currentLang,
+    mission.description
+  );
   missionDescriptionEl.hidden = false;
   followProbe = false;
   if (labelRenderer) labelRenderer.domElement.style.visibility = '';
@@ -578,7 +631,9 @@ function setRingsVisible(visible) {
 
   button.setAttribute('aria-pressed', String(ringsVisible));
   const stateLabel = document.querySelector('[data-state-for="rings"]');
-  if (stateLabel) stateLabel.textContent = ringsVisible ? 'ON' : 'OFF';
+  if (stateLabel) {
+    stateLabel.textContent = t(currentLang, ringsVisible ? 'stateOn' : 'stateOff');
+  }
 }
 
 function viewRingsBacklight() {
@@ -620,7 +675,7 @@ function viewRingsBacklight() {
 }
 
 function selectBody(id, shouldFocus = true) {
-  if (!BODY_META[id]) return;
+  if (!getBodyMeta(id, currentLang)) return;
   selectedBodyId = id;
   refreshSelectionUI();
 
@@ -670,12 +725,16 @@ function refreshTimeControls() {
 
   pauseButton.classList.toggle('is-active', state.paused);
   pauseButton.setAttribute('aria-pressed', String(state.paused));
-  pauseButton.querySelector('span').textContent = state.paused ? 'Resume' : 'Pause';
+  pauseButton.querySelector('span').textContent = state.paused
+    ? t(currentLang, 'resume')
+    : t(currentLang, 'pause');
 
-  status.textContent = state.paused ? 'PAUSED' : 'LIVE';
+  status.textContent = state.paused
+    ? t(currentLang, 'statusPaused')
+    : t(currentLang, 'statusLive');
   status.classList.toggle('is-paused', state.paused);
 
-  const rateLabel = formatRate(state.rate, state.paused);
+  const rateLabel = formatLocalizedRate(state.rate, state.paused, currentLang);
   rate.textContent = rateLabel;
   clockRate.textContent = rateLabel;
 
@@ -721,12 +780,86 @@ function refreshClock() {
     dateInput.value = dateString;
   }
 
-  const sunDistance = jupiterSim.sunDistanceKm / 1e6;
-  document.getElementById('telemetry-sun-distance').textContent =
-    `${sunDistance.toFixed(2)} M km`;
+  if (jupiterSim) {
+    const sunDistance = jupiterSim.sunDistanceKm / 1e6;
+    document.getElementById('telemetry-sun-distance').textContent =
+      `${sunDistance.toFixed(2)} ${t(currentLang, 'millionKm')}`;
+  }
   document.getElementById('fps').textContent = `${Math.round(state.fps)} FPS`;
   updateViewState();
   applyOrbitVisibility();
+}
+
+function applyStaticTranslations() {
+  document.documentElement.lang = currentLang;
+  document.title = t(currentLang, 'docTitle');
+
+  const canvas = document.getElementById('webgl-canvas');
+  if (canvas) canvas.setAttribute('aria-label', t(currentLang, 'canvasAria'));
+
+  const langSwitcher = document.getElementById('lang-switcher');
+  if (langSwitcher) {
+    langSwitcher.setAttribute('aria-label', t(currentLang, 'langGroupAria'));
+  }
+
+  const speedGroup = document.querySelector('.speed-group');
+  if (speedGroup) {
+    speedGroup.setAttribute('aria-label', t(currentLang, 'timeRateTitle'));
+  }
+
+  const dateInput = document.getElementById('time-date');
+  if (dateInput) dateInput.setAttribute('aria-label', t(currentLang, 'dateInputAria'));
+
+  const hudButton = document.getElementById('btn-toggle-hud');
+  if (hudButton) {
+    const hidden = document.body.classList.contains('hud-hidden');
+    hudButton.setAttribute(
+      'aria-label',
+      t(currentLang, hidden ? 'showInterface' : 'hideInterface')
+    );
+  }
+
+  const translatedNodes = document.querySelectorAll('[data-i18n]');
+  for (let i = 0; i < translatedNodes.length; i += 1) {
+    const el = translatedNodes[i];
+    el.textContent = t(currentLang, el.dataset.i18n);
+  }
+
+  const langButtons = document.querySelectorAll('.lang-btn[data-lang]');
+  for (let i = 0; i < langButtons.length; i += 1) {
+    const button = langButtons[i];
+    const active = button.dataset.lang === currentLang;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+
+  const planets = Object.keys(missionOptgroups);
+  for (let i = 0; i < planets.length; i += 1) {
+    const planet = planets[i];
+    missionOptgroups[planet].label = getMissionPlanetLabel(planet, currentLang);
+  }
+
+  const saturnTitle = t(currentLang, 'saturnUnavailable');
+  for (let i = 0; i < disabledMissionOptions.length; i += 1) {
+    disabledMissionOptions[i].title = saturnTitle;
+  }
+}
+
+function applyLanguage(lang, persist = false) {
+  currentLang = normalizeLanguage(lang);
+  if (persist) saveStoredLanguage(currentLang);
+
+  applyStaticTranslations();
+  refreshTargetListUI();
+  refreshBodyLabels();
+  refreshViewToggles();
+  refreshSelectionUI();
+  refreshTimeControls();
+  refreshMissionUi();
+  refreshInstrumentReadout();
+  if (jupiterSim) refreshClock();
+  missionSim?.setLanguage(currentLang);
+  missionTimelineUI?.setLanguage(currentLang);
 }
 
 function updateFps(delta) {
@@ -825,6 +958,12 @@ function setLoaderProgress(fraction) {
 }
 
 async function bootstrapApp() {
+  currentLang = detectInitialLanguage({
+    stored: loadStoredLanguage(),
+    navigatorLanguage: typeof navigator !== 'undefined' ? navigator.language : null
+  });
+  applyStaticTranslations();
+
   const canvas = document.getElementById('webgl-canvas');
   renderer = new THREE.WebGLRenderer({
     canvas,
@@ -973,18 +1112,14 @@ async function bootstrapApp() {
     const visible = !document.body.classList.contains('show-labels');
     document.body.classList.toggle('show-labels', visible);
     labelsButton.setAttribute('aria-pressed', String(visible));
-    document.querySelector('[data-state-for="labels"]').textContent = visible
-      ? 'ON'
-      : 'OFF';
+    refreshViewToggles();
   });
 
   const orbitsButton = document.getElementById('btn-toggle-orbits');
   orbitsButton.addEventListener('click', () => {
     orbitsVisible = !orbitsVisible;
     orbitsButton.setAttribute('aria-pressed', String(orbitsVisible));
-    document.querySelector('[data-state-for="orbits"]').textContent = orbitsVisible
-      ? 'ON'
-      : 'OFF';
+    refreshViewToggles();
     applyOrbitVisibility();
   });
 
@@ -1003,6 +1138,13 @@ async function bootstrapApp() {
   for (let i = 0; i < speedButtons.length; i += 1) {
     speedButtons[i].addEventListener('click', () => {
       setRate(Number(speedButtons[i].dataset.rate));
+    });
+  }
+
+  const langButtons = document.querySelectorAll('.lang-btn[data-lang]');
+  for (let i = 0; i < langButtons.length; i += 1) {
+    langButtons[i].addEventListener('click', () => {
+      applyLanguage(langButtons[i].dataset.lang, true);
     });
   }
 
@@ -1026,7 +1168,7 @@ async function bootstrapApp() {
     const hidden = document.body.classList.toggle('hud-hidden');
     hudButton.setAttribute(
       'aria-label',
-      hidden ? 'Show interface' : 'Hide interface'
+      t(currentLang, hidden ? 'showInterface' : 'hideInterface')
     );
   });
 
@@ -1043,11 +1185,8 @@ async function bootstrapApp() {
 
   window.addEventListener('resize', onResize);
 
-  refreshSelectionUI();
-  refreshTimeControls();
-  refreshClock();
   setRingsVisible(ringsVisible);
-  refreshMissionUi();
+  applyLanguage(currentLang, false);
   timer.reset();
   requestAnimationFrame(tick);
 }
@@ -1056,6 +1195,6 @@ bootstrapApp().catch((error) => {
   console.error('Unable to initialise the Jovian observatory.', error);
   const loader = document.getElementById('loader');
   const label = document.getElementById('loader-label');
-  if (label) label.textContent = 'Unable to load the simulation. Check the console.';
+  if (label) label.textContent = t(currentLang, 'loaderError');
   if (loader) loader.classList.remove('is-hidden');
 });

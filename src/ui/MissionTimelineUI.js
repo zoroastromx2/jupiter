@@ -1,4 +1,10 @@
 import {
+  DEFAULT_LANGUAGE,
+  getMilestoneTitle,
+  normalizeLanguage,
+  t
+} from '../i18n/I18n.js';
+import {
   buildMilestoneTooltipData,
   daysSinceEpochToMissionProgress,
   formatMissionColorHex,
@@ -24,6 +30,8 @@ export class MissionTimelineUI {
     this.onSelectMilestone = onSelectMilestone;
 
     this.mission = null;
+    this.language = DEFAULT_LANGUAGE;
+    this.lastDaysSinceEpoch = 0;
     this.isScrubbing = false;
     this.lastActiveIndex = -1;
     this.markerButtons = [];
@@ -71,8 +79,52 @@ export class MissionTimelineUI {
     });
   }
 
+  setLanguage(lang) {
+    this.language = normalizeLanguage(lang);
+
+    if (this.scrubberEl) {
+      this.scrubberEl.setAttribute(
+        'aria-label',
+        t(this.language, 'missionScrubberAria')
+      );
+    }
+    if (this.markersEl) {
+      this.markersEl.setAttribute(
+        'aria-label',
+        t(this.language, 'missionMarkersAria')
+      );
+    }
+    if (this.stepsEl) {
+      this.stepsEl.setAttribute(
+        'aria-label',
+        t(this.language, 'missionMilestonesAria')
+      );
+    }
+
+    if (!this.mission) return;
+
+    const prevHovered = this.hoveredMarkerIndex;
+    const bounds = getMissionWindowBounds(this.mission);
+    if (this.windowEl) {
+      this.windowEl.textContent = t(this.language, 'missionWindow', {
+        hours: bounds.windowHours
+      });
+    }
+    if (this.peakBoundEl) {
+      this.peakBoundEl.textContent = t(this.language, 'missionPeriapsis');
+    }
+
+    this.buildMilestones();
+    this.sync(this.lastDaysSinceEpoch);
+
+    if (prevHovered >= 0 && this.mission.milestones?.[prevHovered]) {
+      this.showTooltip(this.mission.milestones[prevHovered], prevHovered);
+    }
+  }
+
   setMission(mission, daysSinceEpoch = 0) {
     this.mission = mission ?? null;
+    this.lastDaysSinceEpoch = daysSinceEpoch;
     this.lastActiveIndex = -1;
 
     if (!this.root) return;
@@ -90,13 +142,15 @@ export class MissionTimelineUI {
     const bounds = getMissionWindowBounds(this.mission);
     if (this.titleEl) this.titleEl.textContent = this.mission.name;
     if (this.windowEl) {
-      this.windowEl.textContent = `${bounds.windowHours}h window`;
+      this.windowEl.textContent = t(this.language, 'missionWindow', {
+        hours: bounds.windowHours
+      });
     }
     if (this.startBoundEl) {
       this.startBoundEl.textContent = formatWindowBoundHours(bounds.startHours);
     }
     if (this.peakBoundEl) {
-      this.peakBoundEl.textContent = 'Periapsis · T+00:00';
+      this.peakBoundEl.textContent = t(this.language, 'missionPeriapsis');
     }
     if (this.endBoundEl) {
       this.endBoundEl.textContent = formatWindowBoundHours(bounds.endHours);
@@ -116,7 +170,12 @@ export class MissionTimelineUI {
 
   showTooltip(milestone, index) {
     if (!this.tooltipEl || !this.mission || !milestone) return;
-    const data = buildMilestoneTooltipData(this.mission, milestone);
+    const data = buildMilestoneTooltipData(
+      this.mission,
+      milestone,
+      this.language,
+      index
+    );
     if (!data) return;
 
     this.hoveredMarkerIndex = index;
@@ -145,8 +204,14 @@ export class MissionTimelineUI {
       const milestone = milestones[i];
       const deltaHours = missionUToDeltaHours(this.mission, milestone.t);
       const offsetText = formatMissionOffset(deltaHours);
-      const targetText = formatTargetLabel(milestone.targetKey);
+      const targetText = formatTargetLabel(milestone.targetKey, this.language);
       const fovText = `${Math.round(milestone.defaultFov)}°`;
+      const localizedTitle = getMilestoneTitle(
+        this.mission.key,
+        i,
+        this.language,
+        milestone.title
+      );
       const pct = Math.max(0, Math.min(100, milestone.t * 100));
 
       if (this.markersEl) {
@@ -158,7 +223,12 @@ export class MissionTimelineUI {
         markerBtn.setAttribute('aria-describedby', 'mission-marker-tooltip');
         markerBtn.setAttribute(
           'aria-label',
-          `Jump to milestone ${i + 1}: ${milestone.title} (${offsetText}, FOV ${fovText})`
+          t(this.language, 'markerJumpAria', {
+            index: i + 1,
+            title: localizedTitle,
+            offset: offsetText,
+            fov: fovText
+          })
         );
 
         const pip = document.createElement('span');
@@ -191,7 +261,7 @@ export class MissionTimelineUI {
         stepBtn.type = 'button';
         stepBtn.className = 'milestone-step';
         stepBtn.dataset.milestoneIndex = String(i);
-        stepBtn.title = `${milestone.title} (${milestone.instrumentName}, ${fovText})`;
+        stepBtn.title = `${localizedTitle} (${milestone.instrumentName}, ${fovText})`;
 
         const metaRow = document.createElement('span');
         metaRow.className = 'milestone-step-meta';
@@ -209,7 +279,7 @@ export class MissionTimelineUI {
 
         const titleSpan = document.createElement('span');
         titleSpan.className = 'milestone-step-title';
-        titleSpan.textContent = milestone.title;
+        titleSpan.textContent = localizedTitle;
 
         stepBtn.appendChild(metaRow);
         stepBtn.appendChild(titleSpan);
@@ -225,6 +295,7 @@ export class MissionTimelineUI {
   }
 
   sync(daysSinceEpoch) {
+    this.lastDaysSinceEpoch = daysSinceEpoch;
     if (!this.mission || !this.root || this.root.hidden) return -1;
 
     const progress = daysSinceEpochToMissionProgress(this.mission, daysSinceEpoch);
@@ -239,7 +310,7 @@ export class MissionTimelineUI {
     if (this.statusEl) {
       this.statusEl.textContent = inWindow
         ? `${percent}%`
-        : 'Outside window';
+        : t(this.language, 'missionOutsideWindow');
       this.statusEl.classList.toggle('is-outside', !inWindow);
     }
 

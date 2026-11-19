@@ -3,6 +3,11 @@ import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { MISSIONS } from '../data/HistoricalMissions.js';
 import { J2000_EPOCH_MS, MS_PER_DAY } from '../math/AstroScale.js';
 import {
+  DEFAULT_LANGUAGE,
+  getMilestoneTitle,
+  normalizeLanguage
+} from '../i18n/I18n.js';
+import {
   MS_PER_HOUR,
   getActiveMilestoneIndex,
   missionUToDaysSinceEpoch
@@ -67,6 +72,7 @@ export class MissionSimulator {
     this.radiusEq = 1;
     this.instrumentMode = false;
     this.spinPhase = 0;
+    this.language = DEFAULT_LANGUAGE;
 
     this.milestoneBadges = [];
     this.lineGeometry = null;
@@ -669,7 +675,12 @@ export class MissionSimulator {
 
       const element = document.createElement('div');
       element.className = 'milestone-badge';
-      element.textContent = milestone.title;
+      element.textContent = getMilestoneTitle(
+        mission.key,
+        i,
+        this.language,
+        milestone.title
+      );
       element.style.setProperty('--mission-color', missionColor);
 
       const label = new CSS2DObject(element);
@@ -681,7 +692,8 @@ export class MissionSimulator {
         element,
         geometry,
         material,
-        milestone
+        milestone,
+        index: i
       });
     }
 
@@ -692,6 +704,20 @@ export class MissionSimulator {
     this.update(daysSinceEpoch, this.camera);
 
     return mission;
+  }
+
+  setLanguage(lang) {
+    this.language = normalizeLanguage(lang);
+    if (!this.activeMission) return;
+    for (let i = 0; i < this.milestoneBadges.length; i += 1) {
+      const badge = this.milestoneBadges[i];
+      badge.element.textContent = getMilestoneTitle(
+        this.activeMission.key,
+        badge.index ?? i,
+        this.language,
+        badge.milestone.title
+      );
+    }
   }
 
   refreshProbeVisibility() {
