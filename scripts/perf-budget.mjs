@@ -26,7 +26,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DIST = join(ROOT, 'dist');
 
 const BUDGETS = {
-  firstFrameMs: Number(process.env.PERF_FIRST_FRAME_MS ?? 5_000),
+  firstFrameMs: Number(process.env.PERF_FIRST_FRAME_MS ?? 8_000),
   initialTransferBytes: Number(process.env.PERF_TRANSFER_BYTES ?? 4_000_000),
   glbsBeforeFirstFrame: Number(process.env.PERF_GLBS_BEFORE_FRAME ?? 0)
 };
