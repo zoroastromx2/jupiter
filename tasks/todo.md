@@ -1,8 +1,8 @@
 # Task List: Baseline Hardening (Iteration 1)
 
-Status: **implemented** · 2026-11-18 (one CI verification pending first push)
+Status: **completed** · 2026-11-18 · CI run 44454516000 green
 Plan: `tasks/plan.md` · Spec: `SPEC.md` (v1.1)
-Result: 41 tests / 10 files · build clean · headless browser smoke passed.
+Result: 41 tests / 10 files · build clean · browser smoke passed · test → build → deploy green.
 
 Target order: T1 → T2 → T3 → T4. Every task ends green (`npm test`, `npm run build`).
 
@@ -19,14 +19,14 @@ concurrency exactly as they are.
       caching, running `npm ci` then `npm test`.
 - [x] The `build` job declares `needs: test`; `deploy` still declares `needs: build`.
 - [x] `on`, `permissions` and `concurrency` blocks are unchanged.
-- [ ] The YAML parses on the Actions runner and the job graph is
-      `deploy → build → test` (reviewed locally; no YAML parser is installed, so
-      the first push is the final check).
+- [x] The YAML parsed on the Actions runner and the job graph is
+      `deploy → build → test` (run 44454516000).
 
 **Verification:**
 - [x] `npm test` passes locally (41/41 after T4).
 - [x] `git diff .github/workflows/deploy.yml` reviewed line by line.
-- [ ] After pushing (with user consent), the Actions run shows `test` before `build`.
+- [x] After pushing, the Actions run showed `test` before `build`:
+      https://github.com/zoroastromx2/jupiter/actions/runs/44454516000
 
 **Dependencies:** None.
 
@@ -164,7 +164,7 @@ confirming the assertions have teeth.
   WAC 52° → NAC 10° → exit.
 - Code/test files: `deploy.yml`, `MissionSimulator.js`, `StarfieldSimulator.js`,
   `CameraController.test.js`, `StarfieldSimulator.test.js`.
-- Residual: first Actions run (push not performed); no commit made.
+- Residual: none. CI run 44454516000: test ✓, build ✓, deploy ✓.
 
 ## Noticed but not touching
 

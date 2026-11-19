@@ -306,7 +306,7 @@ guard added, WebGL context loss still unhandled). G13 is new.
 
 | ID | Gap | Evidence | Suggested action |
 |---|---|---|---|
-| G1 | CI deploys without running tests — **closed** | `test` job added; `build` now declares `needs: test` | — |
+| G1 | CI deploys without running tests — **closed, verified in CI** | `test` job added; `build` now declares `needs: test` | — |
 | G2 | No code licence | No `LICENSE` at root; README credits assets only | Choose a licence; review CC BY-SA implications of the Ganymede/Callisto maps |
 | G3 | Epoch constants duplicated — **closed** | `MissionSimulator.js` now imports `J2000_EPOCH_MS` and `MS_PER_DAY` from `AstroScale` | — |
 | G4 | UI and boot logic untested — **partial** | `main.js` (~1,000 lines) has no test; `CameraController` is now covered | Extract testable state helpers; add jsdom tests for `main.js` |
@@ -345,10 +345,10 @@ Executed on 2026-11-18 in `E:\AAD\3D\Jupiter`:
 | Epoch literals | no `86400000` or `Date.UTC` left in `MissionSimulator.js` |
 | Headless Chrome 157 (SwiftShader) | WebGL2, loader hidden, 75 FPS at 1440×900, zero exceptions, one deprecation warning (`THREE.Clock`) |
 | HUD smoke | Io → surface → Esc; Juno mission → 2016-08-27; instrument WAC 52° → NAC 10° → exit |
+| GitHub Actions run [44454516000](https://github.com/zoroastromx2/jupiter/actions/runs/44454516000) | test ✓, build ✓, deploy ✓ |
 
 Not verified: live GPU rendering on the target hardware, mobile layout,
-accessibility audit, deployed Pages run, first Actions run after the workflow
-change.
+accessibility audit, deployed Pages run in a real browser.
 
 ---
 

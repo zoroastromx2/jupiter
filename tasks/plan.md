@@ -1,6 +1,6 @@
 # Implementation Plan: Baseline Hardening (Iteration 1)
 
-**Status:** approved 2026-11-18 · implemented 2026-11-18 · one CI check pending first push
+**Status:** approved · implemented · CI verified (run 44454516000)
 
 ## Overview
 
@@ -80,11 +80,10 @@ Full acceptance criteria and file lists live in `tasks/todo.md`.
 - [x] Browser smoke: target, surface, Esc, Juno mission, instrument, lens
       (headless Chrome 157; 75 FPS; zero exceptions).
 
-### Final checkpoint — passed except the first CI run
-- [x] All acceptance criteria in `tasks/todo.md` met, except the pending
-      Actions-run confirmation for T1.
+### Final checkpoint — passed
+- [x] All acceptance criteria in `tasks/todo.md` met.
 - [x] No new dependency, no user-visible change, no asset change.
-- [x] Diff reviewed and ready to commit (no commit made without consent).
+- [x] Diff reviewed and committed; CI test → build → deploy green.
 
 ## Verification
 
@@ -116,7 +115,7 @@ guard and revert cleanly. No data, schema or asset migration is involved.
 
 | Item | Result |
 |---|---|
-| T1 | `test` job added; `build` needs `test`; triggers/permissions unchanged. Pending first Actions run. |
+| T1 | `test` job added; `build` needs `test`; triggers/permissions unchanged. CI run 44454516000: test ✓. |
 | T2 | `MissionSimulator` imports the shared epoch constants; no literals left. |
 | T3 | `typeof window` guard; 3 Node tests (failed first, then passed). |
 | T4 | 5 camera tests; a deliberate lens mutation failed the suite. |
