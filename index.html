@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A physically scaled 3D observatory of Jupiter and the Galilean moons, with live Keplerian orbits, analytical transit shadows and custom GLSL atmospheres."
+    />
+    <title>Jovian Observatory · Jupiter &amp; Galilean Moons</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <canvas
+        id="webgl-canvas"
+        role="img"
+        aria-label="Simulation of Jupiter and the moons Io, Europa, Ganymede and Callisto"
+      ></canvas>
+      <div id="labels-layer" aria-hidden="true"></div>
+      <div class="screen-vignette" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="brand glass">
+          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="13.5" />
+            <circle cx="32" cy="32" r="7.5" class="brand-band" />
+            <ellipse cx="32" cy="32" rx="27" ry="10.5" transform="rotate(-18 32 32)" />
+            <circle cx="51.5" cy="18.5" r="2.1" class="brand-moon" />
+          </svg>
+          <div class="brand-copy">
+            <span class="eyebrow">JOVIAN SYSTEM / SOL V</span>
+            <h1>Jupiter</h1>
+            <p>Galilean observatory · 5.20 AU</p>
+          </div>
+        </div>
+
+        <div class="clock glass" aria-live="polite">
+          <div class="clock-heading">
+            <span class="eyebrow">SIMULATION EPOCH</span>
+            <span id="hud-status" class="status-pill">LIVE</span>
+          </div>
+          <div class="clock-date">
+            <time id="hud-date">—</time>
+            <span id="hud-time">—</span>
+          </div>
+          <div class="clock-rate">
+            <span>TIME DILATION</span>
+            <strong id="clock-rate">1 h / s</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="hud-grid">
+        <div class="left-stack">
+          <section class="panel glass target-panel" aria-labelledby="targets-title">
+            <div class="panel-head">
+              <h2 id="targets-title">Targets</h2>
+              <span class="panel-index">01</span>
+            </div>
+
+            <div class="target-list">
+              <button class="target-row is-active" type="button" data-body="jupiter">
+                <span class="target-dot dot-jupiter" aria-hidden="true"></span>
+                <span class="target-copy">
+                  <span class="target-name">Jupiter</span>
+                  <span class="target-meta">Gas giant · 71,492 km</span>
+                </span>
+                <span class="target-glyph" aria-hidden="true">›</span>
+              </button>
+              <button class="target-row" type="button" data-body="io">
+                <span class="target-dot dot-io" aria-hidden="true"></span>
+                <span class="target-copy">
+                  <span class="target-name">Io</span>
+                  <span class="target-meta">Volcanic moon · 1,821.6 km</span>
+                </span>
+                <span class="target-glyph" aria-hidden="true">›</span>
+              </button>
+              <button class="target-row" type="button" data-body="europa">
+                <span class="target-dot dot-europa" aria-hidden="true"></span>
+                <span class="target-copy">
+                  <span class="target-name">Europa</span>
+                  <span class="target-meta">Ocean moon · 1,560.8 km</span>
+                </span>
+                <span class="target-glyph" aria-hidden="true">›</span>
+              </button>
+              <button class="target-row" type="button" data-body="ganymede">
+                <span class="target-dot dot-ganymede" aria-hidden="true"></span>
+                <span class="target-copy">
+                  <span class="target-name">Ganymede</span>
+                  <span class="target-meta">Largest moon · 2,634.1 km</span>
+                </span>
+                <span class="target-glyph" aria-hidden="true">›</span>
+              </button>
+              <button class="target-row" type="button" data-body="callisto">
+                <span class="target-dot dot-callisto" aria-hidden="true"></span>
+                <span class="target-copy">
+                  <span class="target-name">Callisto</span>
+                  <span class="target-meta">Ancient moon · 2,410.3 km</span>
+                </span>
+                <span class="target-glyph" aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <div class="target-actions">
+              <button id="btn-focus" class="action primary" type="button">
+                <span id="btn-focus-label">Close orbit</span>
+              </button>
+              <button id="btn-surface" class="action" type="button">
+                <span id="btn-surface-label">Surface view</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="panel glass view-panel" aria-labelledby="view-title">
+            <div class="panel-head">
+              <h2 id="view-title">View</h2>
+              <span class="panel-index">02</span>
+            </div>
+            <button
+              id="btn-toggle-orbits"
+              class="toggle-row"
+              type="button"
+              aria-pressed="true"
+            >
+              <span>Orbit paths</span>
+              <span class="toggle-state" data-state-for="orbits">ON</span>
+            </button>
+            <button
+              id="btn-toggle-labels"
+              class="toggle-row"
+              type="button"
+              aria-pressed="false"
+            >
+              <span>CSS2D labels</span>
+              <span class="toggle-state" data-state-for="labels">OFF</span>
+            </button>
+            <button
+              id="btn-toggle-rings"
+              class="toggle-row"
+              type="button"
+              aria-pressed="true"
+            >
+              <span>Jupiter rings · Halo / Gossamer</span>
+              <span class="toggle-state" data-state-for="rings">ON</span>
+            </button>
+            <button id="btn-rings-backlight" class="toggle-row preset-row" type="button">
+              <span>Ring backlight</span>
+              <span class="toggle-state">165°</span>
+            </button>
+            <div class="hint-block">
+              <span>DRAG</span> orbit camera · <span>SCROLL</span> zoom ·
+              <span>ESC</span> leave surface
+            </div>
+          </section>
+        </div>
+
+        <section class="panel glass time-panel" aria-labelledby="time-title">
+          <div class="panel-head">
+            <h2 id="time-title">Time Dilation</h2>
+            <span class="panel-index">03</span>
+          </div>
+
+          <div class="time-controls">
+            <button id="btn-pause" class="pause-btn" type="button" aria-pressed="false">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 2.5h2.5v11H4zM9.5 2.5H12v11H9.5z" />
+              </svg>
+              <span>Pause</span>
+            </button>
+            <div class="speed-group" role="group" aria-label="Time dilation multiplier">
+              <button class="speed-btn is-active" type="button" data-speed="1">×1</button>
+              <button class="speed-btn" type="button" data-speed="10">×10</button>
+              <button class="speed-btn" type="button" data-speed="100">×100</button>
+            </div>
+            <span id="speed-readout" class="speed-readout">1 h / s</span>
+          </div>
+
+          <div class="time-machine">
+            <label for="time-date">Time machine</label>
+            <div class="date-row">
+              <input id="time-date" type="date" aria-label="Select simulation date" />
+              <button id="btn-jump" class="action primary compact" type="button">Jump</button>
+              <button id="btn-now" class="action compact" type="button">Now</button>
+            </div>
+            <p class="hint-block">
+              Try <strong>2030-04-01</strong> near equinox, then ×100 to watch
+              Galilean transit shadows sweep the cloud belts.
+            </p>
+          </div>
+        </section>
+
+        <aside class="panel glass telemetry-panel" aria-labelledby="telemetry-title">
+          <div class="panel-head">
+            <h2 id="telemetry-title">Telemetry</h2>
+            <span class="panel-index">04</span>
+          </div>
+
+          <div class="telemetry-target">
+            <span class="eyebrow">ACTIVE BODY</span>
+            <strong id="telemetry-target">Jupiter</strong>
+            <span id="telemetry-type">Gas giant</span>
+          </div>
+
+          <dl class="telemetry-grid">
+            <div>
+              <dt>Mean radius</dt>
+              <dd id="telemetry-radius">—</dd>
+            </div>
+            <div>
+              <dt>Orbit radius</dt>
+              <dd id="telemetry-orbit">—</dd>
+            </div>
+            <div>
+              <dt>Orbital period</dt>
+              <dd id="telemetry-period">—</dd>
+            </div>
+            <div>
+              <dt>Eccentricity</dt>
+              <dd id="telemetry-eccentricity">—</dd>
+            </div>
+            <div>
+              <dt>Sun distance</dt>
+              <dd id="telemetry-sun-distance">—</dd>
+            </div>
+            <div>
+              <dt>Axial tilt</dt>
+              <dd id="telemetry-tilt">3.13°</dd>
+            </div>
+          </dl>
+
+          <div class="telemetry-foot">
+            <span><i class="pulse-dot"></i><span id="view-state">ORBITAL · JUPITER</span></span>
+            <span id="fps">— FPS</span>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="bottombar">
+        <span>PHYSICAL SCALE · 1 UNIT = 1,000 KM</span>
+        <span class="footer-sep" aria-hidden="true"></span>
+        <span>J2000 KEPLERIAN PROPAGATION</span>
+        <span class="footer-sep" aria-hidden="true"></span>
+        <span>ANALYTICAL TRANSIT / ECLIPSE SHADOWS</span>
+      </footer>
+
+      <button id="btn-toggle-hud" class="hud-toggle" type="button" aria-label="Hide interface">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M3 5h14M3 10h14M3 15h14" />
+        </svg>
+      </button>
+
+      <div id="loader" class="loader" role="status" aria-live="polite">
+        <div class="loader-system" aria-hidden="true">
+          <span class="loader-core"></span>
+          <span class="loader-orbit loader-orbit-1"><i></i></span>
+          <span class="loader-orbit loader-orbit-2"><i></i></span>
+          <span class="loader-orbit loader-orbit-3"><i></i></span>
+          <span class="loader-orbit loader-orbit-4"><i></i></span>
+        </div>
+        <span class="eyebrow">JOVIAN OBSERVATORY</span>
+        <h2>Assembling the system</h2>
+        <div class="loader-bar"><span id="loader-progress"></span></div>
+        <p><span id="loader-label">Loading assets</span> · <span id="loader-percent">0%</span></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
