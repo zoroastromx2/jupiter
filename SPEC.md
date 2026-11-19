@@ -1,7 +1,7 @@
 # Spec: Jovian Observatory
 
 **Status:** Draft — awaiting approval
-**Version:** 1.2 (baseline + Iteration 1 hardening + Iteration 2 boot performance)
+**Version:** 1.3 (baseline + hardening + boot performance + quality gate)
 **Repository:** `E:\AAD\3D\Jupiter` @ `632dd78`
 **Date:** 2026-11-18
 
@@ -57,7 +57,7 @@ not from a JPL SPICE kernel.
 | Animation | GSAP (camera and surface transitions) | `3.15.1` |
 | Bundler / dev server | Vite | `8.3.8` (range `^8.3.6`) |
 | Tests | Vitest (Node environment) | `5.1.1` (range `^5.1.0`) |
-| Runtime | Node.js | `>=20.19.0` (CI uses Node 20; local check on 26.13.1) |
+| Runtime | Node.js | `>=20.19.0`; `npm run perf` needs Node 22+ |
 | Hosting | GitHub Pages via Actions | `deploy.yml` |
 
 Required browser capability: **WebGL2**. Three r187 no longer ships a WebGL1
@@ -73,9 +73,10 @@ this spec; results are recorded in §11.
 ```bash
 npm install          # install dependencies from package-lock.json
 npm run dev          # Vite dev server, http://localhost:3000, host exposed
-npm test             # Vitest, single run (33 tests / 8 files)
+npm test             # Vitest, single run (48 tests / 10 files)
 npm run build        # production bundle into dist/
 npm run preview      # serve the built dist/ locally
+npm run perf         # boot performance budget (Node 22+, headless Chrome)
 ```
 
 Deployment (CI, not manual):
@@ -84,8 +85,9 @@ Deployment (CI, not manual):
 VITE_BASE_PATH=/<repo>/ npm run build   # base path consumed by vite.config.js
 ```
 
-There is **no** lint, format, type-check, coverage or E2E script. Adding one is
-a boundary decision (see §8).
+There is **no** lint, format, type-check, coverage or E2E script. `npm run perf`
+is a browser budget check, not an E2E suite. Adding another gate is a boundary
+decision (see §8).
 
 ---
 
@@ -95,7 +97,7 @@ a boundary decision (see §8).
 index.html                     Single page: HUD markup, loader, canvas, module entry
 vite.config.js                 Base path, asset includes, build chunks, Vitest config
 package.json                   Scripts, engines, runtime and dev dependencies
-.github/workflows/deploy.yml   npm ci → build → GitHub Pages
+.github/workflows/deploy.yml   test → build + perf → GitHub Pages
 public/                        Served verbatim: textures (5 MB) and GLB models (6 MB)
 src/
   main.js                      Bootstrap, DOM wiring, UI state, frame loop (~1,000 lines)
@@ -119,7 +121,8 @@ src/
     jovian_rings.vert / .frag  Single-pass forward-scattering dust raymarch
     starfield.vert / .frag     Additive star points
     VintageOpticsShader.js     Post-process Vidicon / reseau / CCD / JunoCam looks
-tests/                         8 Vitest files mirroring math, data and core classes
+tests/                         10 Vitest files mirroring math, data and core classes
+scripts/perf-budget.mjs        Boot budget: static server, CDP, headless Chrome
 dist/                          Build output (git-ignored; do not treat as source)
 ```
 
@@ -227,8 +230,8 @@ thresholds, no browser environment.
 | Shaders, optics look, WebGL output | **No** | — |
 | Accessibility, keyboard flow, responsive layout | **No** | — |
 
-Suite after Iteration 2: 10 files / 48 tests. The browser smoke (§11) is external
-and is not part of `npm test`.
+Suite after Iteration 3: 10 files / 48 tests. The browser smoke and
+`npm run perf` (§11) are external to `npm test`.
 
 Rules for changes:
 
@@ -293,9 +296,12 @@ visual criteria are a manual checklist.
 8. No unhandled promise rejection during load with all assets present.
 9. **Met (Iteration 2):** first frame ≤ 3 s on a 20 Mbps / 40 ms profile and
    initial payload ≤ 3.6 MB. Measured median 2.31 s and 3.37 MB; mission GLBs
-   load on demand.
+   load on demand. The CI budget uses a looser 5 s ceiling under forced
+   SwiftShader.
 10. **Target:** ≥ 50 FPS at 1080p on integrated graphics; adaptive quality if
     the target is missed.
+11. **Met (Iteration 3):** `npm run perf` passes and the `perf` job gates the
+    Pages deploy; a breach fails the workflow before publishing.
 
 ---
 
@@ -313,13 +319,16 @@ guard added, WebGL context loss still unhandled). G13 is new.
 first frame 2.31 s median and 3.37 MB initial on the measured profile. An
 automated performance budget is still missing.
 
+**Iteration 3 status:** G5 closed (`npm run perf` + gating `perf` CI job);
+G13 closed (`THREE.Timer`, no deprecation warning).
+
 | ID | Gap | Evidence | Suggested action |
 |---|---|---|---|
 | G1 | CI deploys without running tests — **closed, verified in CI** | `test` job added; `build` now declares `needs: test` | — |
 | G2 | No code licence | No `LICENSE` at root; README credits assets only | Choose a licence; review CC BY-SA implications of the Ganymede/Callisto maps |
 | G3 | Epoch constants duplicated — **closed** | `MissionSimulator.js` now imports `J2000_EPOCH_MS` and `MS_PER_DAY` from `AstroScale` | — |
 | G4 | UI and boot logic untested — **partial** | `main.js` (~1,000 lines) has no test; `CameraController` is now covered | Extract testable state helpers; add jsdom tests for `main.js` |
-| G5 | No performance guard — **partial** | Probe GLBs load on demand; first frame 2.31 s median / 3.37 MB at 20 Mbps. No automated budget check yet. | Add a scripted or CI budget check |
+| G5 | No performance guard — **closed** | `npm run perf` checks first frame, payload and lazy models; the `perf` CI job gates `deploy` | — |
 | G6 | No lint/format/coverage | No ESLint/Prettier/c8 config or scripts | Add on request; define thresholds in this spec first |
 | G7 | Mixed languages | English UI chrome, Spanish mission titles/labels, `lang="en"` | Pick one product language or add an i18n layer |
 | G8 | External font dependency | Google Fonts `<link>` in `index.html` | Self-host fonts or document the network requirement |
@@ -327,7 +336,7 @@ automated performance budget is still missing.
 | G10 | No runtime resilience — **partial** | No WebGL context-loss handler; `StarfieldSimulator` guard added in Iteration 1 | Add context restore + fallback |
 | G11 | No coverage of the visual result | Shaders and optics have no reference images | Add screenshot baselines if visual regressions become a concern |
 | G12 | Stale `dist/` in the tree | `dist/` exists locally (git-ignored) and can drift from `src/` | Build only in CI; keep local `dist/` out of reviews |
-| G13 | Deprecated `THREE.Clock` | Browser console: "THREE.Clock ... deprecated. Please use THREE.Timer instead." | Migrate to `THREE.Timer` when touching the frame loop; pin three until then |
+| G13 | Deprecated `THREE.Clock` — **closed** | Replaced by `THREE.Timer`; the perf script fails if the warning returns | — |
 
 ---
 
@@ -369,29 +378,40 @@ Executed on 2026-11-18 in `E:\AAD\3D\Jupiter`:
 | Instrument smoke | Voyager 1 → WAC 20° → NAC 10° → exit; 0 exceptions |
 | Exceptions | 0 |
 
+**After Iteration 3 (2026-11-18):**
+
+| Check | Result |
+|---|---|
+| `npm test` | 10 files, 48 tests passed, 559 ms |
+| `npm run build` | 44 modules, 295 ms; JS 160.76 kB + three 670.66 kB (gzip 54.04 + 167.40), CSS 18.48 kB |
+| `npm run perf` (forced SwiftShader) | first frame 3,075 ms (budget 5,000) · transfer 3,373,490 B (budget 4,000,000) · 0 GLBs · 0 exceptions · 0 Clock warnings |
+| Budget failure path | `PERF_FIRST_FRAME_MS=1` → exit 1 with the breach listed |
+| Timer smoke | +2 h in 2 s at ×1; pause held; resume advanced; 0 exceptions |
+| CI `perf` job | pending first push |
+
 Not verified: live GPU rendering on the target hardware, mobile layout,
-accessibility audit, deployed Pages run in a real browser, automated
-performance budget.
+accessibility audit, deployed Pages run in a real browser, first CI run of the
+`perf` job.
 
 ---
 
 ## 12. Open questions
 
-1. **Scope (resolved 2026-11-18):** the baseline, Iteration 1 (hardening) and
-   Iteration 2 (boot performance) are complete. The next iteration still needs a
-   choice: i18n, licence, Saturn, or an automated performance budget.
+1. **Scope (resolved 2026-11-18):** the baseline, Iteration 1 (hardening),
+   Iteration 2 (boot performance) and Iteration 3 (quality gate) are complete.
+   The next iteration still needs a choice: i18n, licence, Saturn, or
+   `pull_request` checks.
 2. **Support matrix (partial):** WebGL2 is assumed but not stated in the README;
-   the performance profile is 20 Mbps / 40 ms on headless SwiftShader. Real
-   devices and an automated budget remain open.
+   the budget enforces 20 Mbps / 40 ms under forced SwiftShader. Real devices
+   remain open.
 3. **Language:** should the product and the mission catalogue be English,
    Spanish, or localised at runtime?
 4. **Licence:** which code licence, and are the CC BY-SA 3.0 moon maps
    acceptable for the intended distribution?
 5. **Accuracy target:** is J2000 Keplerian propagation the accepted precision,
    or is real ephemeris data expected later?
-6. **Quality gate (partial):** tests now gate the Pages deploy. Still open:
-   coverage thresholds, lint, bundle/performance budget, and `pull_request`
-   checks.
+6. **Quality gate (partial):** tests and the perf budget gate the Pages deploy.
+   Still open: coverage thresholds, lint, and `pull_request` checks.
 7. **Saturn scope:** keep the disabled catalogue keys as a stub, remove them,
    or schedule the multi-planet build?
 8. **Persistence:** should camera, time and toggles survive reloads (URL state
