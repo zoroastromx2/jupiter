@@ -387,12 +387,12 @@ Executed on 2026-11-18 in `E:\AAD\3D\Jupiter`:
 | `npm run perf` (forced SwiftShader) | first frame 3,075 ms (budget 8,000) · transfer 3,373,490 B (budget 4,000,000) · 0 GLBs · 0 exceptions · 0 Clock warnings |
 | Budget failure path | `PERF_FIRST_FRAME_MS=1` → exit 1 with the breach listed |
 | CI run [44457662511](https://github.com/zoroastromx2/jupiter/actions/runs/44457662511) | perf failed at 5,928 ms > 5,000; deterministic checks passed; ceiling recalibrated to 8,000 |
+| CI run [44458006644](https://github.com/zoroastromx2/jupiter/actions/runs/44458006644) | perf failed on a Chrome DevTools startup timeout; fixed with free-port polling |
+| CI run [44458283144](https://github.com/zoroastromx2/jupiter/actions/runs/44458283144) | test ✓, perf ✓ (5,613 ms / 8,000), build ✓, deploy ✓ |
 | Timer smoke | +2 h in 2 s at ×1; pause held; resume advanced; 0 exceptions |
-| CI `perf` job | rerun pending after calibration |
 
 Not verified: live GPU rendering on the target hardware, mobile layout,
-accessibility audit, deployed Pages run in a real browser, first CI run of the
-`perf` job.
+accessibility audit, deployed Pages run in a real browser.
 
 ---
 

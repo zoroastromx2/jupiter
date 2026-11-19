@@ -1,6 +1,6 @@
 # Implementation Plan: Quality Gate (Iteration 3)
 
-**Status:** approved · implemented · measured (2026-11-18)
+**Status:** approved · implemented · measured · CI verified (2026-11-18)
 **Spec:** `SPEC.md` v1.3 (G5, G13)
 **Scope:** two independent quality gaps requested together.
 
@@ -51,6 +51,7 @@ final frame loop.
 | `npm run build` | 44 modules / 295 ms; JS 160.76 kB + three 670.66 kB (gzip 54.04 + 167.40) |
 | `npm run perf` (forced SwiftShader) | first frame 3,075 ms (budget 8,000); transfer 3,373,490 B (budget 4,000,000); 0 GLBs; 0 exceptions; 0 Clock warnings |
 | Budget failure path | `PERF_FIRST_FRAME_MS=1` → exit 1 with a clear failure line |
+| CI run 44458283144 | test ✓ · perf ✓ (5,613 ms / 8,000) · build ✓ · deploy ✓ |
 | Timer smoke | time +2 h in 2 s at ×1; pause held; resume advanced; 0 exceptions |
 | Cleanup | Chrome/profile temp dirs removed; no leftovers |
 
@@ -79,8 +80,8 @@ and Chrome/Chromium/Edge.
 
 ## Open questions
 
-1. **CI confirmation:** the `perf` job is validated locally; the first push is
-   the final check.
-2. **G5 scope:** the budget is automated and gating, but only on push to `main`;
+1. **CI confirmation (resolved):** run 44458283144 is green; the first run
+   exposed a too-tight 5 s ceiling and a Chrome startup timeout, both fixed.
+2. **G5 scope:** the budget is automated and gating on push to `main`;
    `pull_request` checks remain deferred.
 3. **G13 scope:** complete; no further `Clock` usage remains.

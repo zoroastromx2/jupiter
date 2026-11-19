@@ -1,6 +1,6 @@
 # Task List: Quality Gate (Iteration 3)
 
-Status: **completed** · 2026-11-18 (CI perf job pending first push)
+Status: **completed** · 2026-11-18 · CI perf job green
 Plan: `tasks/plan-iteration-3.md` · Spec: `SPEC.md` v1.3
 Result: 48 tests · build clean · perf budget OK · no `THREE.Clock` warning.
 
@@ -87,12 +87,13 @@ on both `build` and `perf`.
       serve `dist/`.
 - [x] `deploy` declares `needs: [build, perf]`; `test` still gates both.
 - [x] Triggers, permissions and concurrency unchanged.
-- [ ] The first Actions run on `main` passes the `perf` job (pending push).
+- [x] The first Actions run on `main` passes the `perf` job:
+      https://github.com/zoroastromx2/jupiter/actions/runs/44458283144
 
 **Verification:**
 - [x] YAML reviewed; job graph `deploy → {build, perf} → test`.
 - [x] `npm run perf` passes locally under the same forced SwiftShader flags.
-- [ ] Actions run (pending push).
+- [x] Actions run: test ✓, perf ✓ (5,613 ms), build ✓, deploy ✓.
 
 **Dependencies:** T2.
 
@@ -113,7 +114,7 @@ iteration records.
 - [x] Timer smoke covers advance, pause and resume.
 - [x] `SPEC.md` v1.3 closes G5 and G13 and records the iteration.
 - [x] Plan and task log marked with the outcome.
-- [ ] CI run for the perf job confirmed on push.
+- [x] CI run for the perf job confirmed on push.
 
 **Verification:**
 - [x] Local commands above.
@@ -139,11 +140,12 @@ iteration records.
   (budget 8,000; calibrated after the first CI run measured 5,928 ms);
   initial transfer 3,373,490 B; 0 GLBs before frame; 0 exceptions; 0 Clock
   warnings.
+- CI run 44458283144: test ✓, perf ✓ (5,613 ms / 8,000), build ✓, deploy ✓.
 - Budget failure path: `PERF_FIRST_FRAME_MS=1` → exit 1.
 - Timer smoke: +2 h in 2 s at ×1; pause held; resume advanced; 0 exceptions.
 - Files: `src/main.js`, `scripts/perf-budget.mjs`, `package.json`, `README.md`,
   `.github/workflows/deploy.yml`.
-- Residual: first Actions run of the `perf` job.
+- Residual: none. The perf job gates deploys and is green on `main`.
 
 ## Noticed but not touching
 
