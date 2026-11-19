@@ -1,7 +1,7 @@
 # Spec: Jovian Observatory
 
 **Status:** Draft — awaiting approval
-**Version:** 1.1 (baseline + Iteration 1 hardening)
+**Version:** 1.2 (baseline + Iteration 1 hardening + Iteration 2 boot performance)
 **Repository:** `E:\AAD\3D\Jupiter` @ `632dd78`
 **Date:** 2026-11-18
 
@@ -145,6 +145,9 @@ main.js
 
 ### Frame flow
 
+Boot waits for textures only; mission GLBs are fetched when a mission is
+selected and swapped into the probe when they arrive (Iteration 2).
+
 1. `daysSinceEpoch` advances by `delta × timeScale × 1/24` (×1 = one simulated
    hour per real second), unless paused.
 2. Jupiter updates spin, heliocentric position and Sun direction.
@@ -217,13 +220,14 @@ thresholds, no browser environment.
 | Ring geometry, material flags, shepherd motion | Yes | `JovianRings.test.js` |
 | Mission catalogue shape, epochs, optics, milestones | Yes | `HistoricalMissions.test.js` |
 | Mission time → curve mapping, probe construction | Yes | `MissionSimulator.test.js` |
+| Probe lazy load, cache and hot swap | Yes | `AssetFetcher.test.js`, `MissionSimulator.test.js` |
 | `main.js` bootstrap and UI wiring | **No** | — |
 | `CameraController` focus / surface / instrument states | Yes (headless Three) | `CameraController.test.js` |
 | `StarfieldSimulator` determinism and pixel-ratio clamp | Yes | `StarfieldSimulator.test.js` |
 | Shaders, optics look, WebGL output | **No** | — |
 | Accessibility, keyboard flow, responsive layout | **No** | — |
 
-Suite after Iteration 1: 10 files / 41 tests. The browser smoke (§11) is external
+Suite after Iteration 2: 10 files / 48 tests. The browser smoke (§11) is external
 and is not part of `npm test`.
 
 Rules for changes:
@@ -287,8 +291,9 @@ visual criteria are a manual checklist.
    the tests; transit shadows appear near the 2030-04-01 equinox.
 7. Deployed build loads under `/<repo>/` with no 404 for assets.
 8. No unhandled promise rejection during load with all assets present.
-9. **Target:** first interactive frame ≤ 10 s on a 20 Mbit connection
-   (initial payload ≈ 9 MB, dominated by 6 MB of GLB models).
+9. **Met (Iteration 2):** first frame ≤ 3 s on a 20 Mbps / 40 ms profile and
+   initial payload ≤ 3.6 MB. Measured median 2.31 s and 3.37 MB; mission GLBs
+   load on demand.
 10. **Target:** ≥ 50 FPS at 1080p on integrated graphics; adaptive quality if
     the target is missed.
 
@@ -304,13 +309,17 @@ plus Iteration 1 (2026-11-18).
 covered, `main.js` still untested); G10 partially closed (`StarfieldSimulator`
 guard added, WebGL context loss still unhandled). G13 is new.
 
+**Iteration 2 status:** G5 partially closed — probe models load per mission;
+first frame 2.31 s median and 3.37 MB initial on the measured profile. An
+automated performance budget is still missing.
+
 | ID | Gap | Evidence | Suggested action |
 |---|---|---|---|
 | G1 | CI deploys without running tests — **closed, verified in CI** | `test` job added; `build` now declares `needs: test` | — |
 | G2 | No code licence | No `LICENSE` at root; README credits assets only | Choose a licence; review CC BY-SA implications of the Ganymede/Callisto maps |
 | G3 | Epoch constants duplicated — **closed** | `MissionSimulator.js` now imports `J2000_EPOCH_MS` and `MS_PER_DAY` from `AstroScale` | — |
 | G4 | UI and boot logic untested — **partial** | `main.js` (~1,000 lines) has no test; `CameraController` is now covered | Extract testable state helpers; add jsdom tests for `main.js` |
-| G5 | No performance guard | Eager `await loadProbeModels()` before first frame; 6 MB of GLBs | Lazy-load models on first mission selection; add budget check |
+| G5 | No performance guard — **partial** | Probe GLBs load on demand; first frame 2.31 s median / 3.37 MB at 20 Mbps. No automated budget check yet. | Add a scripted or CI budget check |
 | G6 | No lint/format/coverage | No ESLint/Prettier/c8 config or scripts | Add on request; define thresholds in this spec first |
 | G7 | Mixed languages | English UI chrome, Spanish mission titles/labels, `lang="en"` | Pick one product language or add an i18n layer |
 | G8 | External font dependency | Google Fonts `<link>` in `index.html` | Self-host fonts or document the network requirement |
@@ -347,18 +356,33 @@ Executed on 2026-11-18 in `E:\AAD\3D\Jupiter`:
 | HUD smoke | Io → surface → Esc; Juno mission → 2016-08-27; instrument WAC 52° → NAC 10° → exit |
 | GitHub Actions run [44454516000](https://github.com/zoroastromx2/jupiter/actions/runs/44454516000) | test ✓, build ✓, deploy ✓ |
 
+**After Iteration 2 (2026-11-18):**
+
+| Check | Result |
+|---|---|
+| `npm test` | 10 files, 48 tests passed, 581 ms |
+| `npm run build` | 44 modules, 845 ms; JS 160.71 kB + three 671.26 kB (gzip 54.02 + 167.58), CSS 18.48 kB |
+| Boot, 3 runs (20 Mbps / 40 ms, cache off) | first frame 2,314 / 2,206 / 2,496 ms → median **2,314 ms** (baseline 5,283 ms) |
+| Initial transfer | **3,373,840 B** (baseline 9,675,518 B) |
+| GLB before first frame | **0** (baseline 3) |
+| Mission requests | Pioneer 10 → 1× `pioneer_11.glb`; Voyager 1 → 1× `voyager_1.glb`; Juno → 0 |
+| Instrument smoke | Voyager 1 → WAC 20° → NAC 10° → exit; 0 exceptions |
+| Exceptions | 0 |
+
 Not verified: live GPU rendering on the target hardware, mobile layout,
-accessibility audit, deployed Pages run in a real browser.
+accessibility audit, deployed Pages run in a real browser, automated
+performance budget.
 
 ---
 
 ## 12. Open questions
 
-1. **Scope (resolved 2026-11-18):** the baseline was approved and Iteration 1
-   (hardening) was planned and completed. The next iteration still needs a
-   choice: performance, i18n, licence or Saturn.
-2. **Support matrix:** which browsers/devices and what performance budget?
-   WebGL2 is assumed but not stated in the README.
+1. **Scope (resolved 2026-11-18):** the baseline, Iteration 1 (hardening) and
+   Iteration 2 (boot performance) are complete. The next iteration still needs a
+   choice: i18n, licence, Saturn, or an automated performance budget.
+2. **Support matrix (partial):** WebGL2 is assumed but not stated in the README;
+   the performance profile is 20 Mbps / 40 ms on headless SwiftShader. Real
+   devices and an automated budget remain open.
 3. **Language:** should the product and the mission catalogue be English,
    Spanish, or localised at runtime?
 4. **Licence:** which code licence, and are the CC BY-SA 3.0 moon maps
@@ -366,7 +390,8 @@ accessibility audit, deployed Pages run in a real browser.
 5. **Accuracy target:** is J2000 Keplerian propagation the accepted precision,
    or is real ephemeris data expected later?
 6. **Quality gate (partial):** tests now gate the Pages deploy. Still open:
-   coverage thresholds, lint, bundle budget, and `pull_request` checks.
+   coverage thresholds, lint, bundle/performance budget, and `pull_request`
+   checks.
 7. **Saturn scope:** keep the disabled catalogue keys as a stub, remove them,
    or schedule the multi-planet build?
 8. **Persistence:** should camera, time and toggles survive reloads (URL state
