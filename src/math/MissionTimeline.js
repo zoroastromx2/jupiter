@@ -143,3 +143,35 @@ export function formatMissionColorHex(colorInt) {
   const safe = Math.max(0, Math.min(0xffffff, Math.round(colorInt)));
   return `#${safe.toString(16).padStart(6, '0')}`;
 }
+
+/**
+ * Pick horizontal tooltip alignment so tooltips near the rail edges stay inside the panel.
+ */
+export function getTooltipAlignment(t) {
+  const clamped = clamp(Number.isFinite(t) ? t : 0.5, 0, 1);
+  if (clamped <= 0.28) return 'start';
+  if (clamped >= 0.72) return 'end';
+  return 'center';
+}
+
+/**
+ * Build formatted display fields and anchor placement for a hovered milestone marker tooltip.
+ */
+export function buildMilestoneTooltipData(mission, milestone) {
+  if (!mission || !milestone) return null;
+  const clampedT = clamp(Number.isFinite(milestone.t) ? milestone.t : 0, 0, 1);
+  const deltaHours = missionUToDeltaHours(mission, clampedT);
+  const fovDegrees = Number.isFinite(milestone.defaultFov)
+    ? Math.round(milestone.defaultFov)
+    : 0;
+
+  return {
+    title: milestone.title ?? '',
+    offset: formatMissionOffset(deltaHours),
+    fov: `FOV ${fovDegrees}°`,
+    target: formatTargetLabel(milestone.targetKey),
+    instrument: milestone.instrumentName ?? '',
+    percent: clampedT * 100,
+    align: getTooltipAlignment(clampedT)
+  };
+}

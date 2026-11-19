@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MISSIONS, MISSION_ORDER } from '../src/data/HistoricalMissions.js';
 import { J2000_EPOCH_MS, MS_PER_DAY } from '../src/math/AstroScale.js';
 import {
+  buildMilestoneTooltipData,
   daysSinceEpochToMissionProgress,
   formatMissionColorHex,
   formatMissionOffset,
@@ -9,6 +10,7 @@ import {
   formatWindowBoundHours,
   getActiveMilestoneIndex,
   getMissionWindowBounds,
+  getTooltipAlignment,
   missionUToDaysSinceEpoch,
   missionUToDeltaHours
 } from '../src/math/MissionTimeline.js';
@@ -103,5 +105,35 @@ describe('MissionTimeline math and formatting', () => {
 
     expect(formatMissionColorHex(0x9df4c7)).toBe('#9df4c7');
     expect(formatMissionColorHex(0x0044ff)).toBe('#0044ff');
+  });
+
+  it('builds dynamic tooltip data with milestone name, time offset, FOV, and edge alignment', () => {
+    const juno = MISSIONS.JUPITER.juno;
+
+    const first = buildMilestoneTooltipData(juno, juno.milestones[0]);
+    expect(first).toEqual({
+      title: 'Sobrevuelo del Polo Norte: Ciclones circumpolares y auroras',
+      offset: 'T-02:24',
+      fov: 'FOV 42°',
+      target: 'Jupiter',
+      instrument: 'JunoCam - Push-Frame RGB',
+      percent: 20,
+      align: 'start'
+    });
+
+    const middle = buildMilestoneTooltipData(juno, juno.milestones[1]);
+    expect(middle.offset).toBe('T+00:00');
+    expect(middle.fov).toBe('FOV 52°');
+    expect(middle.align).toBe('center');
+
+    const last = buildMilestoneTooltipData(juno, juno.milestones[2]);
+    expect(last.offset).toBe('T+02:48');
+    expect(last.fov).toBe('FOV 42°');
+    expect(last.align).toBe('end');
+
+    expect(getTooltipAlignment(0.1)).toBe('start');
+    expect(getTooltipAlignment(0.5)).toBe('center');
+    expect(getTooltipAlignment(0.9)).toBe('end');
+    expect(buildMilestoneTooltipData(null, juno.milestones[0])).toBeNull();
   });
 });

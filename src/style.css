@@ -760,6 +760,7 @@ button {
   --mission-accent: var(--gold);
   width: 100%;
   padding: 10px 15px 11px;
+  overflow: visible;
 }
 
 .mission-timeline[hidden] {
@@ -832,6 +833,86 @@ button {
   padding-top: 15px;
   display: flex;
   align-items: center;
+}
+
+.mission-marker-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  z-index: 12;
+  width: max-content;
+  max-width: min(260px, 86vw);
+  padding: 7px 10px;
+  border: 1px solid var(--mission-accent);
+  border-radius: 8px;
+  background: rgba(8, 11, 19, 0.94);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.mission-marker-tooltip[hidden] {
+  display: none;
+}
+
+.mission-marker-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid var(--mission-accent);
+  border-bottom: 1px solid var(--mission-accent);
+  background: rgba(8, 11, 19, 0.94);
+  transform: translate(-50%, -4px) rotate(45deg);
+}
+
+.mission-marker-tooltip[data-align='start'] {
+  transform: translateX(-18px);
+}
+
+.mission-marker-tooltip[data-align='start']::after {
+  left: 18px;
+}
+
+.mission-marker-tooltip[data-align='end'] {
+  transform: translateX(calc(-100% + 18px));
+}
+
+.mission-marker-tooltip[data-align='end']::after {
+  left: auto;
+  right: 18px;
+  transform: translate(50%, -4px) rotate(45deg);
+}
+
+.tooltip-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.tooltip-meta strong {
+  color: var(--mission-accent);
+  font-weight: 600;
+}
+
+#tooltip-fov {
+  color: var(--gold-bright);
+}
+
+.tooltip-title {
+  color: #fff7e9;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  line-height: 1.32;
+  letter-spacing: 0.01em;
 }
 
 .mission-track-rail {

@@ -1,4 +1,5 @@
 import {
+  buildMilestoneTooltipData,
   daysSinceEpochToMissionProgress,
   formatMissionColorHex,
   formatMissionOffset,
@@ -39,6 +40,12 @@ export class MissionTimelineUI {
     this.startBoundEl = rootElement?.querySelector('#mission-bound-start') ?? null;
     this.peakBoundEl = rootElement?.querySelector('#mission-bound-peak') ?? null;
     this.endBoundEl = rootElement?.querySelector('#mission-bound-end') ?? null;
+    this.tooltipEl = rootElement?.querySelector('#mission-marker-tooltip') ?? null;
+    this.tooltipOffsetEl = rootElement?.querySelector('#tooltip-offset') ?? null;
+    this.tooltipTargetEl = rootElement?.querySelector('#tooltip-target') ?? null;
+    this.tooltipFovEl = rootElement?.querySelector('#tooltip-fov') ?? null;
+    this.tooltipTitleEl = rootElement?.querySelector('#tooltip-title') ?? null;
+    this.hoveredMarkerIndex = -1;
 
     this.bindEvents();
   }
@@ -102,8 +109,31 @@ export class MissionTimelineUI {
   clearNodes() {
     this.markerButtons = [];
     this.stepButtons = [];
+    this.hideTooltip();
     if (this.markersEl) this.markersEl.replaceChildren();
     if (this.stepsEl) this.stepsEl.replaceChildren();
+  }
+
+  showTooltip(milestone, index) {
+    if (!this.tooltipEl || !this.mission || !milestone) return;
+    const data = buildMilestoneTooltipData(this.mission, milestone);
+    if (!data) return;
+
+    this.hoveredMarkerIndex = index;
+    if (this.tooltipOffsetEl) this.tooltipOffsetEl.textContent = data.offset;
+    if (this.tooltipTargetEl) this.tooltipTargetEl.textContent = data.target;
+    if (this.tooltipFovEl) this.tooltipFovEl.textContent = data.fov;
+    if (this.tooltipTitleEl) this.tooltipTitleEl.textContent = data.title;
+
+    this.tooltipEl.style.left = `${data.percent}%`;
+    this.tooltipEl.dataset.align = data.align;
+    this.tooltipEl.hidden = false;
+  }
+
+  hideTooltip(index = null) {
+    if (index !== null && this.hoveredMarkerIndex !== index) return;
+    this.hoveredMarkerIndex = -1;
+    if (this.tooltipEl) this.tooltipEl.hidden = true;
   }
 
   buildMilestones() {
@@ -125,10 +155,10 @@ export class MissionTimelineUI {
         markerBtn.className = 'timeline-marker';
         markerBtn.style.left = `${pct}%`;
         markerBtn.dataset.milestoneIndex = String(i);
-        markerBtn.title = `${offsetText} · ${milestone.title}`;
+        markerBtn.setAttribute('aria-describedby', 'mission-marker-tooltip');
         markerBtn.setAttribute(
           'aria-label',
-          `Jump to milestone ${i + 1}: ${milestone.title} (${offsetText})`
+          `Jump to milestone ${i + 1}: ${milestone.title} (${offsetText}, FOV ${fovText})`
         );
 
         const pip = document.createElement('span');
@@ -136,6 +166,18 @@ export class MissionTimelineUI {
         pip.setAttribute('aria-hidden', 'true');
         markerBtn.appendChild(pip);
 
+        markerBtn.addEventListener('pointerenter', () => {
+          this.showTooltip(milestone, i);
+        });
+        markerBtn.addEventListener('pointerleave', () => {
+          this.hideTooltip(i);
+        });
+        markerBtn.addEventListener('focus', () => {
+          this.showTooltip(milestone, i);
+        });
+        markerBtn.addEventListener('blur', () => {
+          this.hideTooltip(i);
+        });
         markerBtn.addEventListener('click', () => {
           this.onSelectMilestone?.(milestone, i);
         });
