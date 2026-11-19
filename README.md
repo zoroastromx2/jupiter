@@ -30,7 +30,7 @@ regresses. Set `CHROME_PATH` when Chrome is not in a standard location.
 ## Controls
 
 - Click a target to focus it; use **Close orbit** or **Surface view** for camera modes.
-- **Time Dilation**: ×1 advances one simulated hour per real second; ×10 and ×100 accelerate it.
+- **Time Rate**: ×1 runs in real time; presets accelerate to 1 min/s, 1 h/s and 1 d/s.
 - **Time Machine**: enter any calendar date and press **Jump**, or use **Now**.
 - **CSS2D labels**, **orbit paths** and the **Halo/Gossamer ring volume** toggle independently.
 - **Ring backlight** moves the camera behind Jupiter's night side to a ~165° phase angle for
@@ -41,7 +41,7 @@ regresses. Set `CHROME_PATH` when Chrome is not in a standard location.
 - Drag to orbit, scroll to zoom, and press **Esc** to leave a surface view.
 
 Galilean transits are seasonal. Jump to **2030-04-01** (near Jupiter's equinox), select Jupiter,
-and run at ×100 to watch moon shadows cross the cloud belts.
+and select 1 h/s or 1 d/s to watch moon shadows cross the cloud belts.
 
 ## Physical model
 

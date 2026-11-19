@@ -132,7 +132,7 @@ export function daysToDate(days) {
   return setDateFromDays(days, new Date());
 }
 
-const SECONDS_PER_DAY = 86400.0;
+export const SECONDS_PER_DAY = 86400.0;
 
 /**
  * Mean circular orbital speed in km/s.

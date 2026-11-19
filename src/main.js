@@ -27,9 +27,9 @@ import {
   dateToDaysSinceEpoch,
   setDateFromDays
 } from './math/AstroScale.js';
+import { advanceSimulationDays, formatRate } from './math/TimeRate.js';
 import './style.css';
 
-const BASE_DAYS_PER_SECOND = 1.0 / 24.0; // ×1 = one simulated hour per real second
 const BODY_ORDER = ['jupiter', 'io', 'europa', 'ganymede', 'callisto'];
 const MOON_IDS = ['IO', 'EUROPA', 'GANYMEDE', 'CALLISTO'];
 
@@ -83,7 +83,7 @@ const BODY_META = {
 
 const state = {
   daysSinceEpoch: 0,
-  timeScale: 1,
+  rate: 1,
   paused: false,
   fps: 0,
   fpsFrames: 0,
@@ -597,8 +597,8 @@ function focusSelectedBody(surface) {
   updateViewState();
 }
 
-function setSpeed(speed) {
-  state.timeScale = speed;
+function setRate(rate) {
+  state.rate = rate;
   state.paused = false;
   refreshTimeControls();
 }
@@ -606,14 +606,6 @@ function setSpeed(speed) {
 function togglePause() {
   state.paused = !state.paused;
   refreshTimeControls();
-}
-
-function formatRate() {
-  if (state.paused) return 'PAUSED';
-  if (state.timeScale === 1) return '1 h / s';
-  if (state.timeScale === 10) return '10 h / s';
-  if (state.timeScale === 100) return '4.2 d / s';
-  return `${state.timeScale} h / s`;
 }
 
 function refreshTimeControls() {
@@ -630,17 +622,16 @@ function refreshTimeControls() {
   status.textContent = state.paused ? 'PAUSED' : 'LIVE';
   status.classList.toggle('is-paused', state.paused);
 
-  const rateLabel = formatRate();
+  const rateLabel = formatRate(state.rate, state.paused);
   rate.textContent = rateLabel;
   clockRate.textContent = rateLabel;
 
   for (let i = 0; i < speedButtons.length; i += 1) {
     const button = speedButtons[i];
-    const value = Number(button.dataset.speed);
-    button.classList.toggle(
-      'is-active',
-      !state.paused && value === state.timeScale
-    );
+    const value = Number(button.dataset.rate);
+    const active = value === state.rate;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
   }
 }
 
@@ -710,10 +701,11 @@ function tick() {
   requestAnimationFrame(tick);
 
   timer.update();
-  const delta = Math.min(timer.getDelta(), 0.05);
+  const delta = timer.getDelta();
+  const frameDelta = Math.min(delta, 0.05);
 
   if (!state.paused) {
-    state.daysSinceEpoch += delta * state.timeScale * BASE_DAYS_PER_SECOND;
+    state.daysSinceEpoch += advanceSimulationDays(delta, state.rate);
   }
 
   jupiterSim.update(state.daysSinceEpoch);
@@ -722,7 +714,7 @@ function tick() {
     moonSimulators[i].update(state.daysSinceEpoch);
   }
   jupiterSim.updateMoonUniforms(moonSimulators);
-  missionSim.update(state.daysSinceEpoch, camera, delta);
+  missionSim.update(state.daysSinceEpoch, camera, frameDelta);
 
   if (cameraController.isInstrumentLocked) {
     const opticalTarget = missionSim.getOpticalTargetPosition(
@@ -739,7 +731,7 @@ function tick() {
   labelRenderer.render(scene, camera);
 
   updateFps(delta);
-  updateHud(delta);
+  updateHud(frameDelta);
 
   if (!simulationStarted) {
     simulationStarted = true;
@@ -956,7 +948,7 @@ async function bootstrapApp() {
   const speedButtons = document.querySelectorAll('.speed-btn');
   for (let i = 0; i < speedButtons.length; i += 1) {
     speedButtons[i].addEventListener('click', () => {
-      setSpeed(Number(speedButtons[i].dataset.speed));
+      setRate(Number(speedButtons[i].dataset.rate));
     });
   }
 

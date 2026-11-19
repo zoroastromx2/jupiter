@@ -51,8 +51,8 @@
             <span id="hud-time">—</span>
           </div>
           <div class="clock-rate">
-            <span>TIME DILATION</span>
-            <strong id="clock-rate">1 h / s</strong>
+            <span>TIME RATE</span>
+            <strong id="clock-rate">1× · real time</strong>
           </div>
         </div>
       </header>
@@ -189,7 +189,7 @@
 
         <section class="panel glass time-panel" aria-labelledby="time-title">
           <div class="panel-head">
-            <h2 id="time-title">Time Dilation</h2>
+            <h2 id="time-title">Time Rate</h2>
             <span class="panel-index">03</span>
           </div>
 
@@ -200,12 +200,13 @@
               </svg>
               <span>Pause</span>
             </button>
-            <div class="speed-group" role="group" aria-label="Time dilation multiplier">
-              <button class="speed-btn is-active" type="button" data-speed="1">×1</button>
-              <button class="speed-btn" type="button" data-speed="10">×10</button>
-              <button class="speed-btn" type="button" data-speed="100">×100</button>
+            <div class="speed-group" role="group" aria-label="Simulation time rate">
+              <button class="speed-btn is-active" type="button" data-rate="1" aria-pressed="true">Real</button>
+              <button class="speed-btn" type="button" data-rate="60" aria-pressed="false">1 min/s</button>
+              <button class="speed-btn" type="button" data-rate="3600" aria-pressed="false">1 h/s</button>
+              <button class="speed-btn" type="button" data-rate="86400" aria-pressed="false">1 d/s</button>
             </div>
-            <span id="speed-readout" class="speed-readout">1 h / s</span>
+            <span id="speed-readout" class="speed-readout">1× · real time</span>
           </div>
 
           <div class="time-machine">
@@ -216,8 +217,7 @@
               <button id="btn-now" class="action compact" type="button">Now</button>
             </div>
             <p class="hint-block">
-              Try <strong>2030-04-01</strong> near equinox, then ×100 to watch
-              Galilean transit shadows sweep the cloud belts.
+              Prueba <strong>2030-04-01</strong> cerca del equinoccio y usa 1 h/s o 1 d/s para ver las sombras de los tránsitos.
             </p>
           </div>
         </section>
