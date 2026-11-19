@@ -101,4 +101,14 @@ describe('MissionSimulator playback mapping', () => {
     expect(simulator.applyProbeModel('unknown', source)).toBeNull();
     expect(simulator.applyProbeModel('pioneer11', null)).toBeNull();
   });
+
+  it('maps normalized timeline positions back to days since J2000', () => {
+    const simulator = createSimulator();
+    simulator.activeMission = MISSIONS.JUPITER.juno;
+
+    const peakDays = simulator.getDaysSinceEpochForU(0.5);
+    const northPoleDays = simulator.getDaysSinceEpochForU(0.2);
+
+    expect(peakDays - northPoleDays).toBeCloseTo(2.4 / 24, 10);
+  });
 });

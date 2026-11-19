@@ -187,40 +187,96 @@
           </section>
         </div>
 
-        <section class="panel glass time-panel" aria-labelledby="time-title">
-          <div class="panel-head">
-            <h2 id="time-title">Time Rate</h2>
-            <span class="panel-index">03</span>
-          </div>
-
-          <div class="time-controls">
-            <button id="btn-pause" class="pause-btn" type="button" aria-pressed="false">
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M4 2.5h2.5v11H4zM9.5 2.5H12v11H9.5z" />
-              </svg>
-              <span>Pause</span>
-            </button>
-            <div class="speed-group" role="group" aria-label="Simulation time rate">
-              <button class="speed-btn is-active" type="button" data-rate="1" aria-pressed="true">Real</button>
-              <button class="speed-btn" type="button" data-rate="60" aria-pressed="false">1 min/s</button>
-              <button class="speed-btn" type="button" data-rate="3600" aria-pressed="false">1 h/s</button>
-              <button class="speed-btn" type="button" data-rate="86400" aria-pressed="false">1 d/s</button>
+        <div class="center-stack">
+          <section
+            id="mission-timeline"
+            class="panel glass mission-timeline"
+            aria-labelledby="mission-timeline-title"
+            hidden
+          >
+            <div class="mission-timeline-head">
+              <div class="mission-timeline-heading">
+                <h2 id="mission-timeline-title">Mission Timeline</h2>
+                <span id="mission-timeline-window" class="mission-timeline-window">—</span>
+              </div>
+              <div class="mission-timeline-readout" aria-live="polite">
+                <strong id="mission-timeline-offset">T+00:00</strong>
+                <span aria-hidden="true">·</span>
+                <span id="mission-timeline-status">50%</span>
+              </div>
             </div>
-            <span id="speed-readout" class="speed-readout">1× · real time</span>
-          </div>
 
-          <div class="time-machine">
-            <label for="time-date">Time machine</label>
-            <div class="date-row">
-              <input id="time-date" type="date" aria-label="Select simulation date" />
-              <button id="btn-jump" class="action primary compact" type="button">Jump</button>
-              <button id="btn-now" class="action compact" type="button">Now</button>
+            <div class="mission-track-wrap">
+              <div
+                id="mission-timeline-markers"
+                class="mission-timeline-markers"
+                role="group"
+                aria-label="Mission milestone markers"
+              ></div>
+              <div class="mission-track-rail" aria-hidden="true">
+                <span id="mission-timeline-fill" class="mission-track-fill"></span>
+              </div>
+              <input
+                id="mission-scrubber"
+                class="mission-scrubber"
+                type="range"
+                min="0"
+                max="1000"
+                step="1"
+                value="500"
+                aria-label="Mission flight timeline"
+              />
             </div>
-            <p class="hint-block">
-              Prueba <strong>2030-04-01</strong> cerca del equinoccio y usa 1 h/s o 1 d/s para ver las sombras de los tránsitos.
-            </p>
-          </div>
-        </section>
+
+            <div class="mission-track-bounds" aria-hidden="true">
+              <span id="mission-bound-start">-24h</span>
+              <span id="mission-bound-peak">Periapsis · T+00:00</span>
+              <span id="mission-bound-end">+24h</span>
+            </div>
+
+            <div
+              id="mission-milestone-list"
+              class="mission-milestone-list"
+              role="group"
+              aria-label="Mission milestones"
+            ></div>
+          </section>
+
+          <section class="panel glass time-panel" aria-labelledby="time-title">
+            <div class="panel-head">
+              <h2 id="time-title">Time Rate</h2>
+              <span class="panel-index">03</span>
+            </div>
+
+            <div class="time-controls">
+              <button id="btn-pause" class="pause-btn" type="button" aria-pressed="false">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4 2.5h2.5v11H4zM9.5 2.5H12v11H9.5z" />
+                </svg>
+                <span>Pause</span>
+              </button>
+              <div class="speed-group" role="group" aria-label="Simulation time rate">
+                <button class="speed-btn is-active" type="button" data-rate="1" aria-pressed="true">Real</button>
+                <button class="speed-btn" type="button" data-rate="60" aria-pressed="false">1 min/s</button>
+                <button class="speed-btn" type="button" data-rate="3600" aria-pressed="false">1 h/s</button>
+                <button class="speed-btn" type="button" data-rate="86400" aria-pressed="false">1 d/s</button>
+              </div>
+              <span id="speed-readout" class="speed-readout">1× · real time</span>
+            </div>
+
+            <div class="time-machine">
+              <label for="time-date">Time machine</label>
+              <div class="date-row">
+                <input id="time-date" type="date" aria-label="Select simulation date" />
+                <button id="btn-jump" class="action primary compact" type="button">Jump</button>
+                <button id="btn-now" class="action compact" type="button">Now</button>
+              </div>
+              <p class="hint-block">
+                Prueba <strong>2030-04-01</strong> cerca del equinoccio y usa 1 h/s o 1 d/s para ver las sombras de los tránsitos.
+              </p>
+            </div>
+          </section>
+        </div>
 
         <aside class="panel glass telemetry-panel" aria-labelledby="telemetry-title">
           <div class="panel-head">

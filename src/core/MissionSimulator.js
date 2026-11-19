@@ -2,8 +2,12 @@ import * as THREE from 'three';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { MISSIONS } from '../data/HistoricalMissions.js';
 import { J2000_EPOCH_MS, MS_PER_DAY } from '../math/AstroScale.js';
+import {
+  MS_PER_HOUR,
+  getActiveMilestoneIndex,
+  missionUToDaysSinceEpoch
+} from '../math/MissionTimeline.js';
 
-const MS_PER_HOUR = 3600000;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const PATH_SEGMENTS = 360;
 const TWO_PI = Math.PI * 2;
@@ -797,6 +801,11 @@ export class MissionSimulator {
     );
   }
 
+  getDaysSinceEpochForU(missionU) {
+    if (!this.activeMission) return this.lastDaysSinceEpoch ?? 0;
+    return missionUToDaysSinceEpoch(this.activeMission, missionU);
+  }
+
   clearMission() {
     for (let i = 0; i < this.milestoneBadges.length; i += 1) {
       const badge = this.milestoneBadges[i];
@@ -880,13 +889,22 @@ export class MissionSimulator {
     this.probeVisual.scale.setScalar(clamp(cameraDistance * 0.012, 0.7, 1.6));
     this.probeVisual.visible = !this.instrumentMode;
 
+    const activeMilestoneIndex = getActiveMilestoneIndex(
+      this.activeMission.milestones,
+      u
+    );
     for (let i = 0; i < this.milestoneBadges.length; i += 1) {
-      const marker = this.milestoneBadges[i].marker;
+      const badge = this.milestoneBadges[i];
+      const marker = badge.marker;
       marker.getWorldPosition(this.tempMarkerWorld);
       const markerDistance = camera
         ? camera.position.distanceTo(this.tempMarkerWorld)
         : cameraDistance;
-      marker.scale.setScalar(clamp(markerDistance * 0.008, 0.25, 3.0));
+      const activeScale = i === activeMilestoneIndex ? 1.35 : 1.0;
+      marker.scale.setScalar(
+        clamp(markerDistance * 0.008, 0.25, 3.0) * activeScale
+      );
+      badge.element.classList.toggle('is-active', i === activeMilestoneIndex);
     }
 
     if (this.activeMission.key === 'juno' && this.junoSpinGroup) {

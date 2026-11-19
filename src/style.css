@@ -240,7 +240,7 @@ button {
   top: 124px;
   left: 24px;
   right: 24px;
-  bottom: 64px;
+  bottom: 52px;
   display: grid;
   grid-template-columns: minmax(292px, 344px) minmax(0, 1fr) minmax(255px, 306px);
   grid-template-areas: 'left center right';
@@ -250,7 +250,8 @@ button {
 }
 
 .hud-grid > *,
-.left-stack > * {
+.left-stack > *,
+.center-stack > * {
   pointer-events: auto;
 }
 
@@ -259,7 +260,15 @@ button {
   display: flex;
   flex-direction: column;
   gap: 13px;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(226, 180, 118, 0.25) transparent;
   pointer-events: none;
+}
+
+.left-stack > .panel {
+  flex: 0 0 auto;
 }
 
 .panel {
@@ -632,6 +641,16 @@ button {
   pointer-events: none;
   user-select: none;
   backdrop-filter: blur(5px);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.milestone-badge.is-active {
+  border-color: var(--mission-color, var(--gold));
+  background: rgba(12, 16, 26, 0.9);
+  color: #fff7e9;
 }
 
 #instrument-hud {
@@ -726,12 +745,371 @@ button {
   letter-spacing: 0.1em;
 }
 
-.time-panel {
+.center-stack {
   grid-area: center;
   align-self: end;
   justify-self: center;
-  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(580px, 100%);
+  pointer-events: none;
+}
+
+.mission-timeline {
+  --mission-accent: var(--gold);
+  width: 100%;
+  padding: 10px 15px 11px;
+}
+
+.mission-timeline[hidden] {
+  display: none;
+}
+
+.mission-timeline-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+
+.mission-timeline-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mission-timeline-heading h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f7ebd7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mission-timeline-window {
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mission-timeline-readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.mission-timeline-readout strong {
+  color: var(--mission-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#mission-timeline-status.is-outside {
+  color: var(--gold);
+}
+
+.mission-track-wrap {
+  position: relative;
+  height: 32px;
+  padding-top: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.mission-track-rail {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.mission-track-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  transform: scaleX(0.5);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), var(--mission-accent));
+}
+
+.mission-scrubber {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  z-index: 2;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mission-scrubber:focus-visible {
+  outline: 1px solid var(--mission-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.mission-scrubber::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #090c14;
+  background: var(--mission-accent);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.mission-scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #090c14;
+  background: var(--mission-accent);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.mission-timeline-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.timeline-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.timeline-marker::after {
+  content: '';
+  width: 1px;
+  height: 7px;
+  margin-top: 1px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.timeline-marker.is-reached::after,
+.timeline-marker.is-active::after {
+  background: var(--mission-accent);
+}
+
+.timeline-marker-pip {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: #0c101b;
+  transform: rotate(45deg);
+}
+
+.timeline-marker.is-reached .timeline-marker-pip {
+  border-color: var(--mission-accent);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.timeline-marker.is-active .timeline-marker-pip,
+.timeline-marker:hover .timeline-marker-pip,
+.timeline-marker:focus-visible .timeline-marker-pip {
+  border-color: #fff7e9;
+  background: var(--mission-accent);
+  transform: rotate(45deg) scale(1.2);
+}
+
+.timeline-marker:focus-visible {
+  outline: 1px solid var(--mission-accent);
+  border-radius: 4px;
+}
+
+.mission-track-bounds {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 7px;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.mission-milestone-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.milestone-step {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.milestone-step:hover,
+.milestone-step:focus-visible {
+  border-color: rgba(226, 180, 118, 0.45);
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--ink);
+  outline: none;
+}
+
+.milestone-step.is-active {
+  border-color: var(--mission-accent);
+  background: rgba(255, 255, 255, 0.085);
+  color: #fff7e9;
+}
+
+.milestone-step-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.milestone-step-offset {
+  color: var(--mission-accent);
+  font-weight: 600;
+}
+
+.milestone-step-target {
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.milestone-step.is-active .milestone-step-target {
+  color: var(--muted);
+}
+
+.milestone-step-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--sans);
+  font-size: 9.5px;
+  line-height: 1.28;
+  letter-spacing: 0.01em;
+}
+
+.time-panel {
+  width: 100%;
   padding: 16px 19px 17px;
+}
+
+body.mission-active .time-panel {
+  padding: 11px 15px 12px;
+}
+
+body.mission-active .time-panel .panel-head {
+  margin-bottom: 7px;
+}
+
+body.mission-active .time-machine {
+  margin-top: 9px;
+  padding-top: 8px;
+}
+
+body.mission-active .time-machine .hint-block {
+  display: none;
+}
+
+body.mission-active .left-stack {
+  gap: 9px;
+}
+
+body.mission-active .left-stack .panel {
+  padding: 12px 15px 11px;
+}
+
+body.mission-active .left-stack .panel-head {
+  margin-bottom: 7px;
+}
+
+body.mission-active .target-row {
+  padding: 6px 6px;
+}
+
+body.mission-active .target-actions {
+  margin-top: 8px;
+}
+
+body.mission-active .mission-description {
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+body.mission-active .mission-actions {
+  margin-top: 7px;
+}
+
+body.mission-active .view-panel .toggle-row {
+  padding: 6px 2px;
+}
+
+body.mission-active .view-panel .hint-block {
+  margin-top: 6px;
+  padding-top: 6px;
 }
 
 .time-controls {
@@ -1216,9 +1594,13 @@ body.hud-hidden .bottombar {
     width: min(306px, 100%);
   }
 
-  .time-panel {
+  .center-stack {
     justify-self: end;
     width: min(520px, 100%);
+  }
+
+  .time-panel {
+    width: 100%;
   }
 }
 
@@ -1280,7 +1662,19 @@ body.hud-hidden .bottombar {
   }
 
   .left-stack {
+    max-height: none;
+    overflow-y: visible;
     gap: 10px;
+  }
+
+  .center-stack {
+    width: 100%;
+    margin-top: auto;
+    gap: 10px;
+  }
+
+  .mission-milestone-list {
+    grid-template-columns: 1fr;
   }
 
   .view-panel {
@@ -1301,7 +1695,6 @@ body.hud-hidden .bottombar {
 
   .time-panel {
     width: 100%;
-    margin-top: auto;
   }
 
   .bottombar {

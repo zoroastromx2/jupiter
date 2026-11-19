@@ -28,6 +28,8 @@ import {
   setDateFromDays
 } from './math/AstroScale.js';
 import { advanceSimulationDays, formatRate } from './math/TimeRate.js';
+import { missionUToDaysSinceEpoch } from './math/MissionTimeline.js';
+import { MissionTimelineUI } from './ui/MissionTimelineUI.js';
 import './style.css';
 
 const BODY_ORDER = ['jupiter', 'io', 'europa', 'ganymede', 'callisto'];
@@ -127,6 +129,7 @@ let instrumentNameEl;
 let instrumentLensReadoutEl;
 let instrumentDistanceEl;
 let instrumentVelocityEl;
+let missionTimelineUI = null;
 
 const targetButtons = {};
 const timer = new THREE.Timer();
@@ -378,6 +381,52 @@ function populateMissionSelector() {
   followProbeBtn.addEventListener('click', toggleFollowProbe);
   instrumentViewBtn.addEventListener('click', toggleInstrumentView);
   instrumentLensBtn.addEventListener('click', toggleInstrumentLens);
+
+  missionTimelineUI = new MissionTimelineUI(
+    document.getElementById('mission-timeline'),
+    {
+      onScrub: (u) => seekMissionToU(u),
+      onSelectMilestone: (milestone) => seekMissionToU(milestone.t, milestone)
+    }
+  );
+}
+
+function syncSimulationEpoch(days) {
+  state.daysSinceEpoch = days;
+  setDateFromDays(state.daysSinceEpoch, simulationDate);
+
+  jupiterSim.update(state.daysSinceEpoch);
+  for (let i = 0; i < moonSimulators.length; i += 1) {
+    moonSimulators[i].update(state.daysSinceEpoch);
+  }
+  jupiterSim.updateMoonUniforms(moonSimulators);
+  ringsSim.update(state.daysSinceEpoch);
+  missionSim.update(state.daysSinceEpoch, camera, 0);
+}
+
+function seekMissionToU(u, milestone = null) {
+  const activeMission = missionSim?.activeMission;
+  if (!activeMission) return;
+
+  const targetDays = missionUToDaysSinceEpoch(activeMission, u);
+  syncSimulationEpoch(targetDays);
+
+  if (cameraController?.isInstrumentLocked) {
+    const opticalConfig =
+      milestone ?? missionSim.getActiveOpticalConfig(missionSim.currentU);
+    if (opticalConfig?.defaultFov) {
+      cameraController.setInstrumentFov(opticalConfig.defaultFov);
+    }
+    const opticalTarget = missionSim.getOpticalTargetPosition(
+      missionSim.currentU
+    );
+    if (opticalTarget) cameraController.setInstrumentTarget(opticalTarget);
+  }
+
+  refreshClock();
+  refreshMissionUi();
+  refreshInstrumentReadout();
+  missionTimelineUI?.sync(state.daysSinceEpoch);
 }
 
 function ensureMissionProbeModel(mission, key) {
@@ -446,6 +495,8 @@ function selectMission(planet, key) {
 
   refreshClock();
   refreshMissionUi();
+  document.body.classList.add('mission-active');
+  missionTimelineUI?.setMission(mission, state.daysSinceEpoch);
 }
 
 function clearActiveMission() {
@@ -459,6 +510,8 @@ function clearActiveMission() {
   if (missionSelectorEl) missionSelectorEl.value = '';
   if (instrumentHudEl) instrumentHudEl.hidden = true;
   cameraController?.setOpticsMode(0);
+  document.body.classList.remove('mission-active');
+  missionTimelineUI?.setMission(null);
   refreshMissionUi();
 }
 
@@ -640,19 +693,19 @@ function jumpToDate(value) {
   const timestamp = Date.parse(`${value}T00:00:00Z`);
   if (!Number.isFinite(timestamp)) return;
 
-  state.daysSinceEpoch = (timestamp - J2000_EPOCH_MS) / MS_PER_DAY;
-  setDateFromDays(state.daysSinceEpoch, simulationDate);
+  syncSimulationEpoch((timestamp - J2000_EPOCH_MS) / MS_PER_DAY);
   refreshClock();
   refreshMissionUi();
   refreshInstrumentReadout();
+  missionTimelineUI?.sync(state.daysSinceEpoch);
 }
 
 function jumpToNow() {
-  state.daysSinceEpoch = dateToDaysSinceEpoch(new Date());
-  setDateFromDays(state.daysSinceEpoch, simulationDate);
+  syncSimulationEpoch(dateToDaysSinceEpoch(new Date()));
   state.paused = false;
   refreshTimeControls();
   refreshClock();
+  missionTimelineUI?.sync(state.daysSinceEpoch);
 }
 
 function refreshClock() {
@@ -695,6 +748,7 @@ function updateHud(delta) {
   refreshClock();
   refreshMissionUi();
   refreshInstrumentReadout();
+  missionTimelineUI?.sync(state.daysSinceEpoch);
 }
 
 function tick() {
