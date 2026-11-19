@@ -20,7 +20,12 @@ Other scripts:
 ```bash
 npm test       # Vitest unit tests
 npm run build  # production build
+npm run perf   # boot performance budget (Node 22+, headless Chrome)
 ```
+
+`npm run perf` serves `dist/`, launches Chrome under a fixed 20 Mbps profile and
+fails if the first frame, the initial payload or the lazy-model contract
+regresses. Set `CHROME_PATH` when Chrome is not in a standard location.
 
 ## Controls
 
