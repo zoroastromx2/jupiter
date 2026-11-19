@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  base: process.env.VITE_BASE_PATH || './',
+  assetsInclude: ['**/*.glb', '**/*.gltf', '**/*.hdr', '**/*.vert', '**/*.frag'],
   server: {
     port: 3000,
     host: true,
@@ -9,7 +10,17 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    assetsDir: 'assets',
+    emptyOutDir: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/three')) return 'three';
+        }
+      }
+    }
   },
   test: {
     environment: 'node',

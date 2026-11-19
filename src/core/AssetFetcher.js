@@ -1,6 +1,18 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+export function resolveAssetUrl(path, baseUrl = import.meta.env?.BASE_URL ?? '/') {
+  if (/^(https?:)?\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+
+  const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const normalizedPath = path
+    .replace(/^(\.\/|\/)+/, '')
+    .replace(/^public\//, '');
+  return `${base}${normalizedPath}`;
+}
+
 const COLOR_ASSETS = new Set([
   'jupiterColor',
   'ioColor',
@@ -71,9 +83,7 @@ export class AssetFetcher {
     this.onProgress = options.onProgress ?? null;
     this.baseUrl =
       options.baseUrl ??
-      (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL
-        ? import.meta.env.BASE_URL
-        : '/');
+      (import.meta.env?.BASE_URL ?? '/');
     this.assets = {
       jupiterColor: null,
       jupiterNormal: null,
@@ -95,8 +105,7 @@ export class AssetFetcher {
   }
 
   assetUrl(relativePath) {
-    const base = this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`;
-    return `${base}${relativePath}`;
+    return resolveAssetUrl(relativePath, this.baseUrl);
   }
 
   configureTexture(texture, colorSpace) {
