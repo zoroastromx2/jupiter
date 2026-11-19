@@ -27,10 +27,11 @@ final frame loop.
   dependency and reuses the system Chrome. `CHROME_PATH` covers non-standard
   installs.
 - **AD2 — Deterministic budgets.** The gate checks four things: zero GLB
-  requests before the first frame, initial transfer ≤ 4 MB, first frame ≤ 5 s
+  requests before the first frame, initial transfer ≤ 4 MB, first frame ≤ 8 s
   under forced SwiftShader, and no `THREE.Clock` warning. The structural and
   byte checks catch the regression that mattered (models back in boot) without
-  depending on runner speed; the time ceiling is deliberately loose.
+  depending on runner speed; the time ceiling was calibrated to 8 s after the
+  first CI run measured 5,928 ms.
 - **AD3 — CI owns the gate.** A `perf` job on Node 22 builds with the default
   relative base, runs `npm run perf`, and `deploy` now needs `[build, perf]`.
   The build job keeps its Pages base path; the perf build is measured at `/`.
@@ -48,7 +49,7 @@ final frame loop.
 |---|---|
 | `npm test` | 10 files / 48 tests / 559 ms |
 | `npm run build` | 44 modules / 295 ms; JS 160.76 kB + three 670.66 kB (gzip 54.04 + 167.40) |
-| `npm run perf` (forced SwiftShader) | first frame 3,075 ms (budget 5,000); transfer 3,373,490 B (budget 4,000,000); 0 GLBs; 0 exceptions; 0 Clock warnings |
+| `npm run perf` (forced SwiftShader) | first frame 3,075 ms (budget 8,000); transfer 3,373,490 B (budget 4,000,000); 0 GLBs; 0 exceptions; 0 Clock warnings |
 | Budget failure path | `PERF_FIRST_FRAME_MS=1` → exit 1 with a clear failure line |
 | Timer smoke | time +2 h in 2 s at ×1; pause held; resume advanced; 0 exceptions |
 | Cleanup | Chrome/profile temp dirs removed; no leftovers |
@@ -72,7 +73,7 @@ and Chrome/Chromium/Edge.
 |---|---|---|
 | CI runner lacks Chrome | Perf job fails | `CHROME_PATH`, `google-chrome`/`chromium` discovery; first push validates |
 | CI WebGL2 unavailable | First-frame mark missing | `--enable-unsafe-swiftshader` + forced ANGLE SwiftShader; verified locally |
-| Software rendering slower than local GPU | Time budget flaky | 5 s ceiling; structural/byte checks are the real gate |
+| Software rendering slower than local GPU | Time budget flaky | 8 s ceiling calibrated on the runner; structural/byte checks are the real gate |
 | Node 22 requirement surprises Node 20 users | `npm run perf` fails | Clear error message and README note; app itself still runs on 20.19 |
 | Timer changes frame timing | Time controls drift | `reset()` before the loop; browser smoke of advance/pause/resume |
 
