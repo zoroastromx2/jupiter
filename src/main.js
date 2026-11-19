@@ -129,7 +129,8 @@ let instrumentDistanceEl;
 let instrumentVelocityEl;
 
 const targetButtons = {};
-const clock = new THREE.Clock(false);
+const timer = new THREE.Timer();
+timer.connect(document);
 
 function bodySimulatorFor(id) {
   if (id === 'jupiter') return jupiterSim;
@@ -708,7 +709,8 @@ function updateHud(delta) {
 function tick() {
   requestAnimationFrame(tick);
 
-  const delta = Math.min(clock.getDelta(), 0.05);
+  timer.update();
+  const delta = Math.min(timer.getDelta(), 0.05);
 
   if (!state.paused) {
     state.daysSinceEpoch += delta * state.timeScale * BASE_DAYS_PER_SECOND;
@@ -731,7 +733,7 @@ function tick() {
 
   cameraController.update();
   sunLight.position.copy(jupiterSim.sunDirection).multiplyScalar(2000);
-  if (opticsPass) opticsPass.uniforms.uTime.value = clock.elapsedTime;
+  if (opticsPass) opticsPass.uniforms.uTime.value = timer.getElapsed();
 
   composer.render();
   labelRenderer.render(scene, camera);
@@ -1000,7 +1002,7 @@ async function bootstrapApp() {
   refreshClock();
   setRingsVisible(ringsVisible);
   refreshMissionUi();
-  clock.start();
+  timer.reset();
   requestAnimationFrame(tick);
 }
 
