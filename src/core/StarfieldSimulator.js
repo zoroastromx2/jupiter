@@ -19,6 +19,8 @@ function mulberry32(seed) {
 export class StarfieldSimulator {
   constructor(scene) {
     const random = mulberry32(0x4a555049);
+    const pixelRatio =
+      typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     const positions = new Float32Array(STAR_COUNT * 3);
     const colors = new Float32Array(STAR_COUNT * 3);
     const sizes = new Float32Array(STAR_COUNT);
@@ -59,7 +61,7 @@ export class StarfieldSimulator {
 
     this.material = new THREE.ShaderMaterial({
       uniforms: {
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) }
+        uPixelRatio: { value: Math.min(pixelRatio, 2) }
       },
       vertexShader: starVert,
       fragmentShader: starFrag,
